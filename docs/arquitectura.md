@@ -360,6 +360,7 @@ La aplicación y quita de promociones no se expone al cliente. La hace el backen
 | POST | `/store/checkout/:cart_id/payment-method` | Clave publicable | Elegir tarjeta o transferencia. Aplica o quita la promoción e inicia la sesión de pago. |
 | GET | `/store/checkout/bank-account` | Clave publicable | Datos bancarios para mostrar en el checkout. |
 | GET | `/store/checkout/transfer-discount` | Clave publicable | Porcentaje de descuento por transferencia, leído de la promoción de Medusa, para mostrar el precio en el listado, el detalle y el carrito. Devuelve solo `{ "percent": 10 }`: el código de la promoción nunca sale. **[Confirmado en HU-13]** |
+| GET | `/store/product-colors` | Clave publicable | Muestras de color de los valores de la opción Color de un producto (`?product_id=`). Las lee la ficha de producto. **[Confirmado en HU-14]** |
 | GET | `/store/order-access/:id` | Token del pedido | Detalle del pedido para el cliente invitado. |
 | POST | `/store/order-access/:id/transfer-proofs` | Token del pedido | Subir comprobante. |
 | GET | `/store/order-access/:id/transfer-proofs` | Token del pedido | Estado del último comprobante y motivo de rechazo. |
