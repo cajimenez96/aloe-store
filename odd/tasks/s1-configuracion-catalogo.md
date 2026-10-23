@@ -1,0 +1,32 @@
+# Sprint 1 - Configuracion y catalogo (Aloe)
+
+Objective: Medusa configurado para Argentina, roles activos y catalogo cargable (docs/planning.md v3.1, S1: HU-04, HU-07, HU-08, HU-09, HU-10, HU-11, HU-31, HU-38; 28 puntos).
+Branch: main | Runner: jest (backend) y `npm run check`
+Preguntas bloqueantes (planning 8): 1 condicion fiscal (HU-04, alicuota), 2 un producto en varias subcategorias (HU-07). Sin respuesta del usuario todavia.
+
+## Specs
+
+S1 (HU-04) Configuracion base de Medusa: region Argentina con ARS por defecto; precios con impuestos incluidos; canales "Web" y "Local" y clave publicable asociada a "Web"; ubicacion de stock "Local" asociada a ambos canales; opciones de envio "Retiro en el local" y "Envio a domicilio" con costo fijo; proveedor manual habilitado en la region; se aplica con `scripts/setup-store.ts`, idempotente; no se carga ningun dato de catalogo.
+S2 (HU-07) Categorias en tres niveles desde el panel nativo; desactivar una categoria la oculta; ninguna categoria viene cargada; guia breve para el dueño. Bloqueante: producto en mas de una subcategoria.
+S3 (HU-08) Producto con talles, colores, precios y stock por variante desde el panel nativo; no permite combinaciones repetidas; precio de lista en ARS; se crea como borrador.
+S4 (HU-09) Muestra visual de color `#RRGGBB` por valor de la opcion "Color" (extension del panel; guardado segun SP-01: modulo propio con vinculo).
+S5 (HU-10) Stock por variante en "Local"; una variante sin stock disponible no se puede agregar al carrito.
+S6 (HU-11) Solo los productos publicados y asignados al canal "Web" aparecen en la tienda; un producto despublicado sigue apareciendo en los pedidos anteriores.
+S7 (HU-31) Extension del panel para las claves de `store.metadata` (datos bancarios, horas de reserva, unidades por variante, email de avisos), con `SETTING_INVALID`; el vendedor no la ve ni la edita.
+S8 (HU-38) Roles con permisos minimos: guard propio con denegacion por defecto, `ROLE_NOT_ALLOWED`, prueba automatizada por ruta y por rol, solo el superadmin toca regiones, impuestos, proveedores de pago y claves de API (SEC-21, SEC-22).
+
+## Tasks
+
+- T1 | S1 | inline | [x*] | `scripts/setup-store.ts` + `npm run setup:store` + eliminacion del seed de demostracion de la starter | Evidencia en base descartable: migrar + setup crea canales Web (renombra el "Default Sales Channel" de Medusa) y Local, region Argentina/ars, region fiscal ar, preferencias de precio con impuestos incluidos (ars y region), ubicacion Local con ambos canales, conjunto y zona de entrega, 2 opciones de envio y clave publicable; segunda ejecucion: 0 creaciones. Prueba de aceptacion: producto en borrador con 2 variantes, precio 1500 ars, stock en Local, `GET /store/shipping-options` devuelve las 2 opciones, `GET /store/payment-providers` devuelve pp_system_default. *PENDIENTE: alicuota de impuestos (pregunta 1) y costo de "Envio a domicilio" (queda en 0).
+- T2 | S3 | inline | [x*] | HU-08 con el panel nativo | Evidencia por API: opciones Talle/Color, variantes con precio ars, variante repetida (M / Negro) rechazada con 400. *No verificado en la interfaz del panel que el producto nuevo quede en borrador por defecto.
+- T3 | S5 | inline | [~] | HU-10 | Stock cargado en Local por API y visible en la tienda (M: 5, L: 0). PENDIENTE: comprobar que una variante con stock 0 no se agrega al carrito (se cubre con HU-18).
+- T4 | S6 | inline | [~] | HU-11 | Borrador: 0 productos en la tienda; publicado: 1; publicado solo en canal Local: no aparece. PENDIENTE: pedidos anteriores muestran un producto despublicado.
+- T5 | S2 | - | [ ] | HU-07 | bloqueada por pregunta 2 (interin: una sola subcategoria). Nota SP-01: `is_active` de las categorias vale false por defecto.
+- T6 | S4 | - | [ ] | HU-09
+- T7 | S7 | - | [ ] | HU-31
+- T8 | S8 | - | [ ] | HU-38
+
+## Log
+
+L1: Se elimino el seed de la starter (`initial-data-seed.ts`, `region-store-policies`, `seed-demo-products.ts`) y las rutas de ejemplo `/store/custom` y `/admin/custom`. Las bases que ya tienen datos de demostracion (por ejemplo la local de desarrollo) los conservan hasta `docker compose down -v`.
+L2: `medusa exec` acepta un script fuera de `src/` (`../../scripts/setup-store.ts`). Medusa carga `apps/backend/.env` aunque se pase otra `DATABASE_URL`: las variables ya exportadas tienen prioridad, pero las que faltan se completan desde el `.env` (cuidado al probar contra bases descartables).
