@@ -175,7 +175,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 
 ### 7.2 Datos propios
 
-**Muestra de color.** Se guarda en la `metadata` del valor de opción de color: `{ "hex": "#RRGGBB" }`. **[Verificar en HU-09]** `ProductOptionValue` tiene el campo `metadata`, pero la ruta `POST /admin/product-options/:id` no lo acepta (`sp-01-medusa.md`, punto 2). Salvo que HU-09 encuentre otra ruta que lo escriba, se crea un módulo con un vínculo a `ProductOptionValue`.
+**Muestra de color.** Se guarda en la `metadata` del valor de opción de color: `{ "hex": "#RRGGBB" }`. **[Confirmado en HU-09]** `ProductOptionValue` tiene el campo `metadata`, pero la API de opciones no lo acepta (`sp-01-medusa.md`, punto 2). La muestra vive en el módulo propio `product-color` (`apps/backend/src/modules/product-color`), con un vínculo de uno a uno a `ProductOptionValue` (`src/links/option-value-color.ts`). La edita el admin con un widget en la ficha del producto, a través de `GET` y `POST /admin/product-colors`. Solo se asigna a valores de la opción cuyo título es "Color".
 
 **Acceso del cliente al pedido.** Se guarda en la `metadata` del pedido:
 
@@ -547,6 +547,7 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 | `REJECTION_REASON_REQUIRED` | 422 | Motivo de rechazo inválido. | Escribir un motivo de 10 a 300 caracteres. |
 | `SALE_ITEMS_EMPTY` | 422 | Venta sin productos. | Agregar al menos un producto. |
 | `SETTING_INVALID` | 422 | Valor de configuración inválido. | Corregir el campo indicado. |
+| `COLOR_INVALID` | 422 | El color no tiene el formato `#RRGGBB`, o el valor no es de la opción Color. | Corregir el color. |
 | `ROLE_NOT_ALLOWED` | 403 | El rol no tiene permiso para la acción. | Pedir el permiso al admin. |
 | `WEBHOOK_SIGNATURE_INVALID` | 401 | Firma de Mercado Pago inválida. | No aplica al usuario. Se registra y se descarta. |
 
