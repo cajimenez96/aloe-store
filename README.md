@@ -36,6 +36,7 @@ npm run db:migrate             # crea las tablas
 npm run setup:store            # configuración base de Argentina (idempotente)
 npx -w @aloe/backend medusa user -e <email> -p <contraseña>   # primer usuario
 npm run user:role -- <email> superadmin                        # le da el rol de superadmin
+npm run email:preview                                   # vista previa de los emails en http://127.0.0.1:3900
 npm run dev                    # backend en :9000 y storefront en :3000
 ```
 

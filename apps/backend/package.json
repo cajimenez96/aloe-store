@@ -23,7 +23,8 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "medusa db:migrate",
     "setup:store": "medusa exec ../../scripts/setup-store.ts",
-    "user:role": "medusa exec ../../scripts/set-user-role.ts"
+    "user:role": "medusa exec ../../scripts/set-user-role.ts",
+    "email:preview": "medusa exec ../../scripts/email-preview.ts"
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.22.0",

@@ -684,7 +684,7 @@ NEXT_PUBLIC_IMAGES_HOST=localhost:9000
 | Comprobante rechazado | Cliente | Motivo y enlace para subir otro. |
 | Pedido cancelado | Cliente | Motivo (vencimiento o cancelación del comercio). |
 
-**En local** se usa el proveedor de notificaciones local de Medusa, que viene registrado por defecto y solo registra el contenido en la terminal, sin enviar nada. Hay que configurarle el canal `email`. Las plantillas se verifican con pruebas de renderizado y con una vista previa en el navegador (`npm run email:preview`).
+**En local** se usa el proveedor de notificaciones local de Medusa, que viene registrado por defecto y solo registra el contenido en la terminal, sin enviar nada. Hay que configurarle el canal `email`. Las plantillas se verifican con pruebas de renderizado y con una vista previa en el navegador (`npm run email:preview`). Los envíos pasan por `sendEmail` (`apps/backend/src/lib/notifications/`): arma el email con la plantilla base, lo manda por el canal `email`, reintenta 3 veces con espera creciente y, si todo falla, registra `email_failed` / `email_gave_up` sin destinatario ni datos del cliente y devuelve `false` para no romper el pedido. `npm run email:preview` abre `http://127.0.0.1:3900` con cada plantilla y datos de ejemplo.
 
 **Al desplegar** se elige un proveedor real de emails (TEC-05). Los envíos se hacen desde suscriptores, con reintentos, y los fallos quedan registrados. Mientras no haya despliegue, el MVP0 no envía ningún email real.
 
