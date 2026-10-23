@@ -1,45 +1,21 @@
-# Entorno de desarrollo local. Produccion y staging se despliegan en Coolify (arquitectura.md, seccion 20).
-# Los puertos de PostgreSQL y Redis se publican solo en desarrollo, para poder inspeccionarlos.
-# Los puertos del host evitan chocar con otros servicios locales: 5434, 6380 y 9100.
-x-medusa: &medusa
-  build:
-    context: .
-    dockerfile: apps/backend/Dockerfile
-    target: dev
-  depends_on:
-    postgres:
-      condition: service_healthy
-    redis:
-      condition: service_healthy
-  environment: &medusa-env
-    NODE_ENV: development
-    PORT: "9100"
-    MEDUSA_BACKEND_URL: http://localhost:9100
-    # sslmode=disable: Medusa fuerza SSL con cualquier host distinto de localhost y este Postgres no lo tiene.
-    DATABASE_URL: postgres://aloe:aloe@postgres:5432/aloe_store?sslmode=disable
-    REDIS_URL: redis://redis:6379
-    JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret}
-    COOKIE_SECRET: ${COOKIE_SECRET:-dev-only-cookie-secret}
-    STORE_CORS: ${STORE_CORS:-http://localhost:8000}
-    ADMIN_CORS: ${ADMIN_CORS:-http://localhost:9100}
-    AUTH_CORS: ${AUTH_CORS:-http://localhost:8000,http://localhost:9100}
-  volumes:
-    - ./apps/backend/src:/app/apps/backend/src
-    - ./apps/backend/medusa-config.ts:/app/apps/backend/medusa-config.ts
-
+# Entorno de desarrollo local: solo PostgreSQL y Redis (arquitectura.md, seccion 20.2).
+# Backend y storefront corren en la maquina con `npm run dev`.
+# Los puertos se publican unicamente en 127.0.0.1 (seguridad.md, SEC-04).
+# Para cambiar los puertos del host, crear un archivo .env junto a este archivo
+# con POSTGRES_PORT y REDIS_PORT.
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: aloe
-      POSTGRES_PASSWORD: aloe
-      POSTGRES_DB: aloe_store
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: medusa_dev
     ports:
-      - "5434:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aloe -d aloe_store"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d medusa_dev"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -47,7 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6380:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -55,61 +31,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-
-  # Atiende la API, el panel y los webhooks. Es quien migra la base.
-  medusa-server:
-    <<: *medusa
-    environment:
-      <<: *medusa-env
-      MEDUSA_WORKER_MODE: server
-      DISABLE_MEDUSA_ADMIN: "false"
-    ports:
-      - "9100:9100"
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:9100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 60s
-
-  # Ejecuta jobs y suscriptores. No expone puertos ni el panel.
-  medusa-worker:
-    <<: *medusa
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      medusa-server:
-        condition: service_healthy
-    environment:
-      <<: *medusa-env
-      MEDUSA_WORKER_MODE: worker
-      DISABLE_MEDUSA_ADMIN: "true"
-
-  storefront:
-    build:
-      context: .
-      dockerfile: apps/storefront/Dockerfile
-      target: dev
-    depends_on:
-      medusa-server:
-        condition: service_healthy
-    environment:
-      NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9100
-      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:-}
-      NEXT_PUBLIC_IMAGES_DOMAIN: ${NEXT_PUBLIC_IMAGES_DOMAIN:-localhost}
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./apps/storefront/src:/app/apps/storefront/src
-      - ./apps/storefront/public:/app/apps/storefront/public
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:8000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 40s
 
 volumes:
   postgres-data:
