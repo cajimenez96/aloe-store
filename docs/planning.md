@@ -1,6 +1,6 @@
 # Planificación del MVP0: Tienda online + punto de venta
 
-**Versión:** 2
+**Versión:** 2.1
 **Estado:** borrador para revisión
 **Última actualización:** 2026-10-23
 **Documentos relacionados:** `producto.md`, `arquitectura.md`, `seguridad.md`
@@ -678,7 +678,7 @@ En un equipo chico una persona puede ocupar varios roles, pero aceptar una histo
 
 - IDs estables: `HU-XX`, `TEC-XX`, `SP-XX`, `BUG-XX`. El número no cambia con la prioridad.
 - Ramas: `feature/HU-XX-descripcion`, `fix/BUG-XX-descripcion`.
-- Commits: `HU-XX: descripción en español`.
+- Commits: conventional commits con el detalle en español, por ejemplo `feat: se agrega filtro por subcategoría`. El ID de la historia va en la rama y en el título del pull request, no en el commit.
 - Pull requests: título con el ID y enlace al ticket.
 
 ## 14. Historial de cambios
@@ -687,3 +687,4 @@ En un equipo chico una persona puede ocupar varios roles, pero aceptar una histo
 |---|---|---|
 | 2026-10-23 | 1 | Primera versión. |
 | 2026-10-23 | 2 | Backlog rehecho sobre lo nativo de Medusa: 50 historias, 2 tareas técnicas y 2 spikes (225 puntos). Se agregan configuración base, endurecimiento del servidor, épica de seguridad, monitoreo y lanzamiento. Se eliminan la máquina de estados propia, la entidad de pagos por transferencia, el bloqueo de cuentas y la revocación de tokens. Roles junto con la creación de usuarios, emails antes de las historias que los usan y nueva Definition of Done previa al lanzamiento. Todo en Coolify. |
+| 2026-10-23 | 2.1 | Convención de commits: conventional commits con el detalle en español. |
