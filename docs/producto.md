@@ -32,8 +32,8 @@ El comercio vende en el local y quiere vender también por internet, con un úni
 | Catálogo previsto | Bombachas, conjuntos de ropa interior, pijamas, camisones, medias, bolsos, carteras, billeteras, aros y collares |
 | Nombre comercial | Pendiente |
 | Cuenta de Mercado Pago | Existe |
-| Condición fiscal | Pendiente (monotributo o responsable inscripto). Afecta la configuración de impuestos. |
-| Facturación | Manual desde ARCA, fuera del sistema |
+| Condición fiscal | No aplica: el comercio no usa ARCA y el sistema no calcula impuestos. El precio de lista es el precio final. |
+| Facturación | El sistema no emite ni gestiona facturas. El comercio no usa ARCA. |
 | Envíos | Los coordina el dueño con el cliente. Sin integración con transportistas. |
 
 ## 4. Principio rector del MVP0
@@ -91,7 +91,7 @@ Cualquier otra pieza propia necesita justificarse antes de entrar al plan.
 
 - Botón de arrepentimiento (ver sección 11, riesgo legal).
 - Registro de auditoría de precios, stock y configuración.
-- Facturación electrónica con ARCA.
+- Facturación electrónica, solo si el comercio llega a usarla (hoy no usa ARCA).
 - Integración con transportistas (Andreani, OCA o Correo Argentino).
 - Cuentas de cliente con historial.
 - Guías de talles reutilizables.
@@ -168,7 +168,7 @@ El momento exacto en que se crea el pedido (antes o después del pago) se define
 - El **descuento por transferencia** es un porcentaje único para toda la tienda. Lo configura el admin en la promoción correspondiente del panel de Medusa, que es la única fuente de ese valor.
 - El descuento solo se aplica cuando el medio de pago es transferencia. Si el cliente cambia de medio, el total se recalcula.
 - El precio por transferencia lo calcula Medusa y puede incluir centavos. No se aplica un redondeo propio.
-- Los precios están en pesos argentinos (ARS) y se muestran con impuestos incluidos.
+- Los precios están en pesos argentinos (ARS). El sistema no calcula ni discrimina impuestos: el precio de lista es el precio final.
 
 ### 8.2 Stock y reservas
 
@@ -212,7 +212,7 @@ La correspondencia con los estados de Medusa está en `arquitectura.md`, secció
 
 ### 8.7 Facturación
 
-El sistema no emite facturas. Conserva nombre, email, documento (si se informa) y total de cada pedido para que el dueño facture desde ARCA.
+El sistema no emite facturas y el comercio no usa ARCA. Conserva nombre, email, documento (si se informa) y total de cada pedido.
 
 ## 9. Comprobantes de transferencia
 
@@ -250,7 +250,7 @@ El sistema no emite facturas. Conserva nombre, email, documento (si se informa) 
 ## 12. Preguntas abiertas
 
 1. Nombre comercial.
-2. Condición fiscal (monotributo o responsable inscripto).
+2. ~~Condición fiscal~~ Resuelta: no hay régimen fiscal ni ARCA, y no se configuran impuestos.
 3. Porcentaje de descuento por transferencia.
 4. Si el efectivo o la transferencia en el local tienen descuento.
 5. Si un producto puede estar en más de una subcategoría.

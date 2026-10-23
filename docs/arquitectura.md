@@ -128,7 +128,7 @@ Esta configuración la realiza el superadmin una sola vez por instancia. Se auto
 |---|---|---|
 | Moneda | ARS como moneda por defecto de la tienda | [Medusa] |
 | Región | "Argentina", país AR, moneda ARS | [Medusa] |
-| Impuestos | Precios con impuestos incluidos. La alícuota depende de la condición fiscal del cliente (pendiente). | [Medusa] **[Confirmado]** con las preferencias de precio (`/admin/price-preferences`) de la moneda `ars` y de la región, en `is_tax_inclusive: true`. Por defecto vienen en `false`. |
+| Impuestos | Sin impuestos: la región fiscal de Argentina se crea sin alícuota, y los precios se marcan con impuestos incluidos para que el precio de lista sea el precio final. El comercio no usa ARCA. | [Medusa] **[Confirmado]** con las preferencias de precio (`/admin/price-preferences`) de la moneda `ars` y de la región, en `is_tax_inclusive: true`. Por defecto vienen en `false`. |
 | Canales de venta | "Web" y "Local" | [Medusa] |
 | Clave publicable | Una clave asociada al canal "Web", usada por el storefront | [Medusa] |
 | Ubicación de stock | "Local", asociada a ambos canales | [Medusa] |

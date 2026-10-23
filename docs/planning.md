@@ -117,14 +117,13 @@ Cuando exista un despliegue se suma: verificada en el entorno desplegado.
 - **Descripción:** Como superadmin, quiero la tienda configurada con región, moneda, impuestos, canales, stock, envíos y proveedores de pago, para que el dueño pueda empezar a cargar productos.
 - **Criterios de aceptación:**
   - [ ] Región Argentina con ARS como moneda por defecto.
-  - [ ] Precios configurados con impuestos incluidos.
+  - [ ] Sin impuestos: la región fiscal de Argentina existe sin alícuota y el precio de lista es el precio final.
   - [ ] Canales de venta "Web" y "Local", y clave publicable asociada a "Web".
   - [ ] Ubicación de stock "Local" asociada a ambos canales.
   - [ ] Opciones de envío "Retiro en el local" y "Envío a domicilio" con costo fijo.
   - [ ] Proveedor manual habilitado en la región.
   - [ ] La configuración se aplica con `scripts/setup-store.ts`, que es idempotente: ejecutarlo dos veces no duplica nada, y permite recrear el entorno local desde cero.
   - [ ] No se carga ningún dato de catálogo.
-- **Bloqueante:** condición fiscal del cliente, para la alícuota de impuestos.
 
 #### HU-05 · Imágenes de producto en local
 - **Sprint:** S0 · **Puntos:** 3 · **Prioridad:** Must
@@ -720,7 +719,7 @@ Afectan a historias concretas del MVP0. Mientras no se respondan, esas historias
 
 | # | Pregunta | Afecta a | Necesaria antes de |
 |---|---|---|---|
-| 1 | Condición fiscal del cliente (monotributo o responsable inscripto) | HU-04 | S1 |
+| 1 | ~~Condición fiscal del cliente~~ Resuelta: no usa ARCA ni cobra impuestos | HU-04 | S1 |
 | 2 | ¿Un producto puede estar en más de una subcategoría? | HU-07 | S1 |
 | 3 | ¿El efectivo o la transferencia en el local tienen descuento? | HU-34 | S6 |
 
