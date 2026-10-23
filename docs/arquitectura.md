@@ -1,383 +1,408 @@
 # Arquitectura técnica: Tienda online + punto de venta (MVP0)
 
+**Versión:** 2
 **Estado:** borrador para revisión
 **Última actualización:** 2026-10-23
-**Documentos relacionados:** `producto.md`
+**Documentos relacionados:** `producto.md`, `seguridad.md`, `planning.md`
 
-> **Convención de este documento.** Cada endpoint, modelo y componente está marcado como **[Medusa]** si viene de la plataforma sin modificaciones, o **[Propio]** si lo desarrollamos. Los nombres de endpoints nativos corresponden a la API de Medusa 2.x y deben verificarse contra la versión instalada antes de implementar.
+> **Convenciones de este documento**
+> - **[Medusa]**: viene de la plataforma, se usa sin modificaciones.
+> - **[Propio]**: lo desarrollamos con las extensiones oficiales de Medusa.
+> - **[Verificar]**: debe confirmarse contra la documentación y el código de la versión instalada antes de implementar. Todos los puntos marcados así forman parte del spike SP-01 de `planning.md`.
 
 ---
 
 ## 1. Principios
 
-1. **Medusa como núcleo.** Se usa lo que la plataforma ofrece. Cualquier desarrollo propio se hace con sus extensiones oficiales (módulos, workflows, subscribers, hooks y proveedores), nunca modificando el código de Medusa.
-2. **Una instancia por cliente.** Mismo código base, distinta configuración y datos. No hay multitenant.
-3. **Mínimo desarrollo propio.** Se construye solo lo que el negocio no puede resolver con la plataforma.
-4. **Datos sensibles fuera del alcance público.** Comprobantes, credenciales y datos de clientes nunca se exponen sin autenticación.
-5. **Escrituras transaccionales.** Stock, pedidos y pagos se modifican dentro de transacciones para evitar sobreventa e inconsistencias.
+1. **Medusa primero.** Se usa lo que Medusa trae. Lo propio se agrega solo con extensiones oficiales (módulos, workflows, hooks, subscribers, rutas de API y extensiones del panel). Nunca se modifica el código de Medusa.
+2. **Una instancia por cliente.** Mismo código, distinta configuración y datos. No hay multitenant.
+3. **Una sola fuente de verdad por dato.** Ningún valor de negocio vive en dos lugares.
+4. **El servidor decide.** Precios, totales, estados de pago y permisos se calculan y validan en el backend.
+5. **Seguro por defecto.** Lo que no está permitido explícitamente está denegado. Ver `seguridad.md`.
 
 ## 2. Stack tecnológico
 
-| Componente | Tecnología | Decisión |
+| Componente | Tecnología | Tipo |
 |---|---|---|
-| Backend y admin | Medusa.js 2.22 (TypeScript) | [Medusa] |
+| Backend, API y panel | Medusa.js 2.22 (TypeScript) | [Medusa] |
 | Runtime | Node.js 22.22 o superior | Requisito de Medusa 2.22 |
-| Base de datos | PostgreSQL 16 o superior | Requisito de Medusa |
-| Caché y eventos | Redis | Recomendado para producción |
-| Storefront | Next.js 16.4.3 (versión exacta fijada, sin `^`), a partir del starter oficial de Medusa | [Medusa] + ajustes visuales |
-| Estilos | Tailwind CSS | Base de estilos del storefront |
-| Componentes | shadcn/ui | Componentes copiados al repositorio, no como dependencia cerrada |
-| Íconos | Phosphor Icons | Un solo set de íconos en toda la aplicación |
-| Estado del cliente | Zustand | Carrito local, preferencias de interfaz y estado de la sesión de compra |
-| Datos del servidor | TanStack Query (React Query) | Caché y sincronización de catálogo, carrito y pedidos |
-| Documentación de componentes | Storybook | Desarrollo y revisión aislada de componentes de la tienda y del admin |
-| Guía visual | `DESIGN.md` de Shopify (tokens y patrones, sin copiar la identidad de marca) | Referencia de diseño |
-| Pagos con tarjeta | Mercado Pago Checkout Pro | Integración con plugin de la comunidad o proveedor propio (ver sección 9) |
-| Pagos por transferencia | Proveedor de pago propio, de tipo manual | [Propio] |
-| Almacenamiento de imágenes | Cloudflare R2 (API compatible con S3), con el proveedor oficial `file-s3` de Medusa | [Medusa] + configuración. Migración futura a MinIO sin cambiar URLs (ver sección 11) |
-| Almacenamiento privado (comprobantes) | Cloudflare R2, con SDK de S3 directo desde un módulo propio | [Propio] |
-| Autenticación de admin | Usuarios de Medusa con JWT | [Medusa] |
-| Notificaciones por email | Proveedor de Medusa | Pendiente de elegir (ver sección 13) |
-| Contenedores | Docker y Docker Compose | Para desarrollo y despliegue |
+| Base de datos | PostgreSQL | [Medusa] |
+| Caché, eventos y colas | Redis | [Medusa] |
+| Storefront | Next.js 16.4.3 (versión exacta, sin `^`) | [Propio] |
+| Estilos y componentes del storefront | Tailwind CSS, shadcn/ui, Phosphor Icons | [Propio] |
+| Estado del storefront | Zustand (solo estado de interfaz) y TanStack Query (solo interacciones del cliente) | [Propio] |
+| Catálogo de componentes | Storybook (solo storefront) | [Propio] |
+| Extensiones del panel | Medusa Admin SDK y Medusa UI | [Propio] sobre [Medusa] |
+| Pago con tarjeta | Mercado Pago Checkout Pro | Plugin evaluado o proveedor propio (SP-02) |
+| Pago por transferencia | Proveedor manual de Medusa (`pp_system_default`) | [Medusa] |
+| Imágenes de producto | Cloudflare R2 con el proveedor `file-s3` | [Medusa] + configuración |
+| Comprobantes | Cloudflare R2, bucket privado, con SDK de S3 | [Propio] |
+| Emails | Proveedor de notificaciones compatible con Medusa | Pendiente de elegir |
+| Despliegue | Coolify sobre una VPS, con Docker | Infraestructura |
 
 ## 3. Vista general
 
 ```
-┌────────────────────┐       ┌──────────────────────────────────────┐
-│  Storefront        │       │  Backend Medusa 2.22                 │
-│  (Next.js)         │──API──│                                      │
-│  - Catálogo        │ store │  Store API  ──► Carrito, pedidos,    │
-│  - Carrito/checkout│       │                 pagos, promociones   │
-└────────────────────┘       │                                      │
-                             │  Admin API  ──► Productos, stock,    │
-┌────────────────────┐       │                 pedidos, promociones │
-│  Admin (dashboard) │──API──│                                      │
-│  - Gestión         │ admin │  Propio: proveedor de transferencia, │
-│  - Punto de venta  │       │  validación de descuento, comprobantes│
-└────────────────────┘       └───┬───────────────┬──────────────┬───┘
-                                 │               │              │
-                          ┌──────▼─────┐  ┌──────▼──────┐ ┌─────▼──────────┐
-                          │ PostgreSQL │  │    Redis    │ │ Storage S3     │
-                          └────────────┘  └─────────────┘ │ (imágenes y    │
-                                                          │  comprobantes) │
-                          ┌─────────────────────────┐     └────────────────┘
-                          │ Mercado Pago (webhooks) │
-                          └─────────────────────────┘
+                     Internet
+                        │
+              ┌─────────▼──────────┐
+              │ Proxy de Coolify   │  HTTPS, certificados, límites de solicitudes
+              └──┬─────────────┬───┘
+                 │             │
+     ┌───────────▼───┐   ┌─────▼─────────────────────────┐
+     │ Storefront    │   │ Medusa (modo servidor)        │
+     │ Next.js       │──▶│  /store  API de tienda        │
+     │               │   │  /admin  API de admin         │
+     └───────────────┘   │  /app    Panel + punto de venta│
+                         │  /hooks  Webhooks              │
+                         └───┬──────────────┬─────────────┘
+                             │              │
+                   ┌─────────▼──┐   ┌───────▼──────────┐
+                   │ PostgreSQL │   │ Redis            │◀── Medusa (modo worker)
+                   └────────────┘   └──────────────────┘    jobs y suscriptores
+
+  Red interna de Docker: PostgreSQL y Redis no publican puertos.
+
+  Servicios externos:
+  ─ Cloudflare R2: imágenes (público por dominio propio), comprobantes (privado), respaldos (privado)
+  ─ Mercado Pago: Checkout Pro y webhooks
+  ─ Proveedor de email
+
+  Panel de Coolify: accesible solo por VPN o IP permitida (seguridad.md, SEC-02)
 ```
+
+Medusa corre en dos procesos con la misma imagen: el **servidor**, que atiende solicitudes HTTP, y el **worker**, que ejecuta jobs programados y suscriptores de eventos. **[Verificar]** la variable y los valores exactos del modo de arranque en Medusa 2.22.
 
 ## 4. Estructura del repositorio
 
 ```
 ecommerce-mvp0/
 ├── apps/
-│   ├── backend/              # Medusa 2.22 (API, admin y extensiones propias)
+│   ├── backend/                 # Medusa 2.22
 │   │   ├── src/
-│   │   │   ├── admin/        # Personalizaciones del dashboard (si hacen falta)
-│   │   │   ├── api/          # Endpoints propios (store y admin)
-│   │   │   ├── modules/      # Módulos propios (transferencias, comprobantes)
-│   │   │   ├── workflows/    # Flujos propios (pedido por transferencia, venta local)
-│   │   │   ├── subscribers/  # Respuestas a eventos (emails, notificaciones)
-│   │   │   └── providers/    # Proveedor de pago por transferencia
+│   │   │   ├── admin/           # Extensiones del panel (Medusa UI): punto de venta,
+│   │   │   │                    #   revisión de comprobantes, datos bancarios, muestra de color
+│   │   │   ├── api/             # Rutas propias (/store/... y /admin/...)
+│   │   │   ├── modules/
+│   │   │   │   └── transfer-proof/   # Comprobantes de transferencia
+│   │   │   ├── workflows/       # Flujos propios y hooks sobre flujos nativos
+│   │   │   ├── subscribers/     # Emails y avisos
+│   │   │   └── jobs/            # Vencimiento de pedidos, conciliación de pagos
 │   │   ├── medusa-config.ts
+│   │   ├── Dockerfile
 │   │   └── .env.example
-│   └── storefront/           # Next.js
+│   └── storefront/              # Next.js 16.4.3
+│       ├── src/
+│       ├── .storybook/
+│       ├── Dockerfile
+│       └── .env.example
 ├── packages/
-│   └── shared-types/         # DTOs compartidos entre backend y storefront
+│   └── shared-types/            # DTOs compartidos
 ├── docs/
 │   ├── producto.md
-│   └── arquitectura.md
-├── docker-compose.yml
+│   ├── arquitectura.md
+│   ├── seguridad.md
+│   └── planning.md
+├── docker-compose.yml           # Desarrollo local
 └── README.md
 ```
 
-## 5. Configuración del sistema
+## 5. Configuración base de Medusa
 
-La configuración de la tienda se guarda en la base de datos y la edita el admin desde el panel. Las credenciales se guardan en variables de entorno, nunca en la base de datos.
+Esta configuración la realiza el superadmin una sola vez por instancia. Se documenta en un script o en una guía del README para que sea repetible.
 
-### 5.1 Configuración editable por el admin [Propio]
+| Elemento | Configuración | Tipo |
+|---|---|---|
+| Moneda | ARS como moneda por defecto de la tienda | [Medusa] |
+| Región | "Argentina", país AR, moneda ARS | [Medusa] |
+| Impuestos | Precios con impuestos incluidos. La alícuota depende de la condición fiscal del cliente (pendiente). | [Medusa] **[Verificar]** opción de precios con impuestos incluidos |
+| Canales de venta | "Web" y "Local" | [Medusa] |
+| Clave publicable | Una clave asociada al canal "Web", usada por el storefront | [Medusa] |
+| Ubicación de stock | "Local", asociada a ambos canales | [Medusa] |
+| Opciones de envío | "Retiro en el local" (sin costo) y "Envío a domicilio" (costo fijo) | [Medusa] |
+| Proveedores de pago en la región | Manual (`pp_system_default`) y Mercado Pago | [Medusa] |
+| Usuarios | Superadmin, admin y vendedores | [Medusa] |
 
-| Clave | Tipo | Valor por defecto | Descripción |
+Ningún dato de catálogo (categorías, productos, talles, colores) se carga en esta configuración.
+
+## 6. Configuración del comercio
+
+Los datos que el admin necesita editar se guardan en la `metadata` de la entidad `Store` de Medusa, editable desde una extensión del panel. No se crea una tabla de configuración propia.
+
+| Clave en `store.metadata` | Tipo | Valor inicial | Descripción |
 |---|---|---|---|
-| `transfer_discount_percent` | number (0 a 100) | 0 | Porcentaje de descuento por transferencia. |
-| `transfer_rounding` | enum | `nearest_integer` | Redondeo del precio por transferencia. |
-| `reservation_ttl_hours` | number | 48 | Horas que se reserva el stock de un pedido pendiente de transferencia. |
-| `transfer_proof_max_mb` | number | 5 | Tamaño máximo del comprobante. |
-| `transfer_proof_formats` | string[] | `["jpg","png","pdf"]` | Formatos aceptados. |
-| `bank_account` | objeto | — | Titular, CBU/CVU, alias y banco. Se muestran al cliente. |
-| `shipping_flat_rate` | number | 0 | Costo fijo de envío a domicilio. |
-| `notify_admin_email` | string | — | Destinatario de avisos de comprobantes pendientes. |
+| `bank_account` | objeto | — | Titular, CBU o CVU, alias y banco. Se muestran al cliente que paga por transferencia. |
+| `transfer_reservation_hours` | entero | 24 | Horas antes de cancelar un pedido por transferencia sin comprobante aceptado. |
+| `transfer_promotion_code` | string | — | Código interno de la promoción de transferencia. Solo lo lee el backend. |
+| `max_units_per_variant` | entero | 5 | Unidades máximas por variante en un pedido online. |
+| `admin_notification_email` | string | — | Destinatario de avisos de comprobantes. |
 
-Los valores se exponen mediante un endpoint de lectura para la tienda (sin datos sensibles) y uno de escritura para el admin.
+**Datos que no viven aquí, para no duplicarlos:**
+- El **porcentaje de descuento por transferencia** vive solo en la promoción de Medusa.
+- El **costo de envío** vive solo en la opción de envío de Medusa.
 
-### 5.2 Variables de entorno
+**[Verificar]** que la `metadata` de `Store` no se exponga en la API de tienda. Si se expone, `transfer_promotion_code` debe moverse a una variable de entorno.
 
-```
-DATABASE_URL=
-REDIS_URL=
-JWT_SECRET=
-COOKIE_SECRET=
-STORE_CORS=
-ADMIN_CORS=
-AUTH_CORS=
-MERCADOPAGO_ACCESS_TOKEN=
-MERCADOPAGO_WEBHOOK_SECRET=
-S3_ENDPOINT=
-S3_BUCKET=
-S3_ACCESS_KEY_ID=
-S3_SECRET_ACCESS_KEY=
-EMAIL_PROVIDER_API_KEY=
-PUBLIC_BACKEND_URL=
-```
+## 7. Modelo de datos
 
-## 6. Modelo de datos
+### 7.1 Entidades nativas usadas [Medusa]
 
-### 6.1 Entidades nativas [Medusa]
-
-| Entidad | Uso en el proyecto |
+| Entidad | Uso |
 |---|---|
-| `Product` | Producto publicado, con título, descripción, estado e imágenes. |
-| `ProductOption` | Opción del producto (por ejemplo, "Talle" o "Color"). |
-| `ProductOptionValue` | Valor de la opción (por ejemplo, "M" o "Negro"). |
-| `ProductVariant` | Combinación de valores de opción. Es la unidad vendible. |
-| `ProductCategory` | Categoría, con jerarquía padre-hijo sin límite de niveles. Se usa en tres niveles. |
-| `Price` | Precio de lista de la variante. |
-| `InventoryItem` y `InventoryLevel` | Stock por variante y ubicación. |
-| `Promotion` y `ApplicationMethod` | Descuentos por porcentaje, con o sin código. |
-| `Cart` y `LineItem` | Carrito y líneas. |
-| `Order` | Pedido. |
-| `PaymentCollection` y `PaymentSession` | Pagos asociados al pedido. |
-| `User` | Usuarios del admin. |
+| `Product`, `ProductOption`, `ProductOptionValue`, `ProductVariant` | Catálogo, talles, colores y variantes. Las opciones se definen por producto. |
+| `ProductCategory` | Jerarquía de tres niveles. Desactivación con el campo nativo de categoría activa. **[Verificar]** nombre del campo. |
+| `Price` | Precio de lista por variante. |
+| `InventoryItem`, `InventoryLevel`, `ReservationItem` | Stock y reservas. |
+| `SalesChannel` | "Web" y "Local". |
+| `Promotion` | Descuento por transferencia y promociones del admin. |
+| `Cart`, `LineItem`, `Order` | Carrito y pedidos. |
+| `PaymentCollection`, `PaymentSession`, `Payment` | Pagos, capturas y reembolsos. |
+| `User` | Usuarios del panel. |
+| `Store` | Configuración del comercio en `metadata`. |
 
-### 6.2 Entidades propias [Propio]
+### 7.2 Datos propios
 
-#### `ProductColor`
-Muestra visual para valores de opción de color.
+**Muestra de color.** Se guarda en la `metadata` del valor de opción de color: `{ "hex": "#RRGGBB" }`. **[Verificar]** que `ProductOptionValue` admita `metadata` editable. Si no la admite, se crea un módulo con un vínculo a `ProductOptionValue`.
 
-| Campo | Tipo | Requerido | Descripción |
-|---|---|---|---|
-| `id` | string | sí | Identificador. |
-| `option_value_id` | string | sí | Referencia a `ProductOptionValue`. Único. |
-| `hex` | string | sí | Color en formato `#RRGGBB`. |
-| `created_at` | datetime | sí | |
-| `updated_at` | datetime | sí | |
+**Acceso del cliente al pedido.** Se guarda en la `metadata` del pedido:
 
-#### `TransferPayment`
-Datos de un pago por transferencia asociado a un pedido.
+| Clave | Descripción |
+|---|---|
+| `access_token_hash` | Hash SHA-256 del token. El token nunca se guarda. |
+| `access_token_expires_at` | Vencimiento del token. Se fija cuando el pedido se cierra. |
+
+**[Verificar]** que la `metadata` del pedido no se devuelva en respuestas públicas. Aunque solo contiene un hash, conviene no exponerla.
+
+**Comprobante de transferencia.** Módulo propio `transfer-proof`, vinculado a `Order`.
 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
 | `id` | string | sí | Identificador. |
-| `order_id` | string | sí | Pedido. Único. |
-| `status` | enum | sí | `pending`, `proof_received`, `confirmed`, `rejected`, `expired`. |
-| `amount` | number | sí | Monto a transferir, ya con descuento aplicado. |
-| `reference` | string | sí | Referencia que el cliente debe usar (número de pedido). |
-| `reserved_until` | datetime | sí | Vencimiento de la reserva de stock. |
-| `reviewed_by` | string | no | Usuario admin que revisó. |
-| `reviewed_at` | datetime | no | |
-| `rejection_reason` | string | no | Motivo visible para el cliente. |
-| `created_at` | datetime | sí | |
-| `updated_at` | datetime | sí | |
-
-#### `TransferProof`
-Comprobante subido por el cliente.
-
-| Campo | Tipo | Requerido | Descripción |
-|---|---|---|---|
-| `id` | string | sí | Identificador. |
-| `transfer_payment_id` | string | sí | Referencia a `TransferPayment`. |
-| `storage_key` | string | sí | Clave del archivo en el storage privado. No es una URL pública. |
+| `order_id` | string | sí | Pedido. Un pedido puede tener varios comprobantes (uno por intento). |
+| `storage_key` | string | sí | Clave en el bucket privado. |
 | `mime_type` | string | sí | `image/jpeg`, `image/png` o `application/pdf`. |
-| `size_bytes` | number | sí | Tamaño del archivo. |
-| `uploaded_at` | datetime | sí | |
+| `size_bytes` | integer | sí | Tamaño. |
+| `sha256` | string | sí | Hash del archivo, para detectar comprobantes repetidos. |
+| `status` | enum | sí | `pending_review`, `accepted`, `rejected`. |
+| `rejection_reason` | string | no | Motivo visible para el cliente. |
+| `reviewed_by` | string | no | Usuario que revisó. |
+| `reviewed_at` | datetime | no | Fecha de revisión. |
+| `created_at` | datetime | sí | Fecha de subida. |
 
-#### `StoreSetting`
-Configuración del sistema (sección 5.1).
+Reglas:
+- Solo puede haber un comprobante `pending_review` por pedido.
+- Aceptar un comprobante captura el pago del pedido en la misma operación.
 
-| Campo | Tipo | Requerido | Descripción |
+## 8. Estados
+
+No hay una máquina de estados propia. Los estados del negocio (`producto.md`, sección 8.4) se derivan de los estados nativos de Medusa y del estado del último comprobante.
+
+| Estado para el negocio | Estado del pedido en Medusa | Estado del pago en Medusa | Último comprobante |
 |---|---|---|---|
-| `key` | string | sí | Clave única. |
-| `value` | json | sí | Valor tipado según la clave. |
-| `updated_by` | string | no | Usuario que modificó. |
-| `updated_at` | datetime | sí | |
+| Pendiente de pago | pendiente | autorizado o no pagado | ninguno |
+| Comprobante en revisión | pendiente | autorizado o no pagado | `pending_review` |
+| Comprobante rechazado | pendiente | autorizado o no pagado | `rejected` |
+| Pagado | pendiente o completado | capturado | `accepted` (o ninguno, si fue con tarjeta) |
+| Cancelado | cancelado | cancelado | cualquiera |
+| Reembolsado | cualquiera | reembolsado total o parcial | cualquiera |
 
-### 6.3 Reglas del modelo
+**[Verificar]** los nombres exactos de los estados de pedido y de pago en Medusa 2.22, y en qué estado queda el pago con el proveedor manual al completar el carrito.
 
-- Una categoría puede tener hijos hasta tres niveles por convención de la interfaz. Medusa no impone el límite.
-- Un producto puede pertenecer a varias categorías en Medusa. La interfaz restringe a una sola subcategoría por producto.
-- Desactivar en lugar de eliminar: categorías, opciones y valores de opción que tienen uso se marcan como inactivos. Los pedidos históricos conservan la referencia.
-- Las entidades `TransferPayment` y `TransferProof` se crean solo para pedidos con medio de pago por transferencia.
+## 9. Descuento por transferencia
 
-## 7. Descuento por transferencia
+### 9.1 Mecanismo
 
-### 7.1 Mecanismo
+1. El admin crea en el panel una promoción de tipo porcentaje sobre el pedido, con un código largo y aleatorio. Ese código se guarda en `store.metadata.transfer_promotion_code`.
+2. Cuando el cliente elige transferencia, el backend aplica la promoción al carrito con el código interno.
+3. Cuando elige tarjeta, el backend la quita.
+4. Al completar el carrito, un hook verifica que la promoción esté presente solo si la sesión de pago es del proveedor manual. Si no coincide, rechaza la operación con `DISCOUNT_PAYMENT_MISMATCH`.
 
-1. El admin crea una **promoción automática** de tipo porcentaje sobre el pedido, asociada al medio de pago de transferencia. El valor del porcentaje se toma de `transfer_discount_percent`.
-2. Cuando el cliente elige transferencia, el storefront recalcula el carrito con esa promoción.
-3. Cuando elige tarjeta, la promoción se quita del carrito antes de iniciar la sesión de Mercado Pago.
-4. Al completar el pedido, un **hook de validación** del flujo de completar carrito verifica que la promoción de transferencia solo esté presente si el proveedor de pago elegido es el de transferencia. Si no coincide, se rechaza la operación con el error `DISCOUNT_PAYMENT_MISMATCH`.
+La elección de medio de pago pasa por una ruta propia del storefront hacia el backend. El cliente nunca envía el código.
 
-### 7.2 Redondeo
+### 9.2 Por qué no una promoción automática
 
-El precio por transferencia se calcula como:
+Las promociones automáticas se aplican cuando el carrito cumple sus condiciones, y el medio de pago se elige después. Con una promoción automática, el descuento se aplicaría también a quien paga con tarjeta.
 
-```
-precio_transferencia = redondear(precio_lista × (1 − porcentaje / 100))
-```
+### 9.3 Pendiente de verificación
 
-El redondeo se aplica al entero más cercano. El cálculo se hace en el backend, en el momento del pedido, y el storefront solo lo muestra.
+- **[Verificar]** que al aplicar o quitar la promoción se recalcule el total de la colección de pago, o reiniciar la sesión de pago de forma explícita.
+- **[Verificar]** que el hook del flujo de completar carrito permita leer la sesión de pago elegida.
 
-### 7.3 Pendiente de verificación
+## 10. Pago con tarjeta (Mercado Pago)
 
-- Confirmar en la versión instalada que las promociones de tipo porcentaje sobre el pedido se pueden crear como automáticas y aplicar sobre el total del carrito.
-- Confirmar que al cambiar el medio de pago se recalculan las sesiones de pago. Si no ocurre, el paso 3 debe incluir la reinicialización de la sesión.
+### 10.1 Flujo
 
-## 8. Endpoints
+1. El storefront inicia la sesión de pago con el proveedor de Mercado Pago. El backend crea la preferencia de Checkout Pro con el total calculado por Medusa y una referencia externa propia del carrito.
+2. El cliente paga en Mercado Pago y vuelve a la tienda.
+3. Mercado Pago envía una notificación al webhook del backend.
+4. El backend valida la firma, consulta el pago a la API de Mercado Pago, verifica monto, moneda y referencia, y actualiza el pago (`seguridad.md`, SEC-32).
+5. La página de regreso muestra el estado que consulta el backend.
 
-### 8.1 Convenciones
+### 10.2 Decisión pendiente: cuándo se crea el pedido
 
-- **Prefijos:** `/store/` para la tienda, `/admin/` para el panel. Los endpoints propios siguen el mismo prefijo.
-- **Autenticación:**
-  - Tienda: clave publicable de Medusa en el header `x-publishable-api-key`. Los clientes son invitados, sin sesión obligatoria.
-  - Admin: JWT en el header `Authorization: Bearer <token>`.
-- **Formato:** JSON. Fechas en ISO 8601 en UTC.
-- **Montos:** número en la unidad de la moneda (ARS), con dos decimales cuando aplique. Verificar la convención de Medusa 2.22.
-- **Paginación:** `limit` y `offset` como query params. Respuesta con `count`, `offset` y `limit`.
-- **Errores:** ver sección 10.
+| Opción | Ventaja | Riesgo |
+|---|---|---|
+| **A.** El carrito se completa al llegar el pago aprobado | No quedan pedidos sin pagar | El stock no está reservado mientras el cliente paga. Hay que verificar stock al completar y reembolsar si ya no hay. |
+| **B.** El carrito se completa antes de redirigir, con el pago pendiente | El stock queda reservado | Quedan pedidos sin pagar si el cliente abandona. Necesitan vencimiento. |
 
-### 8.2 Endpoints nativos [Medusa]
+La decisión se toma en SP-02 según cómo funcione el plugin elegido o el contrato de proveedores de Medusa. Recomendación inicial: **opción A**, porque es el comportamiento habitual de los proveedores de pago de Medusa y evita pedidos fantasma. La verificación de stock al completar y el reembolso automático forman parte de la historia.
 
-Se listan los que el proyecto usa. Los nombres siguen la API de Medusa 2.x y se verifican contra la versión instalada.
+### 10.3 Conciliación
+
+Un job del worker revisa periódicamente los pagos iniciados sin resolución, consultando la API de Mercado Pago. Cubre los casos en que el webhook no llega.
+
+## 11. Pago por transferencia
+
+1. El cliente elige transferencia. Se aplica la promoción (sección 9) y se inicia la sesión con el proveedor manual.
+2. El carrito se completa y se crea el pedido con el pago pendiente. El stock queda reservado por las reservas nativas de Medusa.
+3. Se genera el token de acceso al pedido y se envía el email con los datos bancarios.
+4. El cliente sube el comprobante (`POST /store/order-access/:id/transfer-proofs`).
+5. El admin revisa el comprobante en una extensión del panel:
+   - **Aceptar:** el comprobante pasa a `accepted` y se captura el pago con el flujo nativo de Medusa.
+   - **Rechazar:** el comprobante pasa a `rejected` con motivo. El pedido sigue pendiente.
+6. Un job del worker cancela los pedidos por transferencia sin comprobante aceptado después de `transfer_reservation_hours`, usando la cancelación nativa. **[Verificar]** que la cancelación nativa libere las reservas de stock.
+
+Un pedido con un comprobante en revisión no se cancela por vencimiento hasta que el admin lo revise.
+
+## 12. Punto de venta
+
+- Es una **ruta propia dentro del panel de Medusa**, construida con Medusa Admin SDK y Medusa UI. No usa shadcn ni el storefront.
+- Cada venta se crea en el canal "Local", con el proveedor manual y el pago capturado en el mismo paso.
+- **[Verificar]** si los pedidos borrador (`draft orders`) de Medusa sirven como base. Si no, la ruta propia ejecuta los workflows nativos de creación de pedido.
+- El reporte de ventas del día filtra pedidos por canal "Local" y fecha.
+
+## 13. Endpoints
+
+### 13.1 Convenciones
+
+- **Tienda:** header `x-publishable-api-key` con la clave del canal "Web".
+- **Admin:** sesión o token de usuario autenticado.
+- **Cliente invitado:** token de acceso al pedido en el header `x-order-token`.
+- Formato JSON, fechas ISO 8601 en UTC.
+- **[Verificar]** si Medusa 2.22 expresa los montos en unidades de la moneda o en centavos.
+
+### 13.2 Endpoints nativos usados [Medusa]
+
+Los nombres siguen la API de Medusa 2.x. **Todos se verifican en SP-01** contra la versión instalada.
 
 **Tienda**
 
 | Método | Ruta | Uso |
 |---|---|---|
-| GET | `/store/products` | Listado con filtros por categoría y búsqueda. |
-| GET | `/store/products/:id` | Detalle de producto con opciones y variantes. |
+| GET | `/store/products` | Listado y búsqueda. |
+| GET | `/store/products/:id` | Detalle con opciones y variantes. |
 | GET | `/store/product-categories` | Árbol de categorías. |
+| GET | `/store/regions` | Región y moneda. |
 | POST | `/store/carts` | Crear carrito. |
-| GET | `/store/carts/:id` | Obtener carrito. |
-| POST | `/store/carts/:id/line-items` | Agregar variante al carrito. |
-| POST | `/store/carts/:id/promotions` | Aplicar promoción (por código o automática). |
-| DELETE | `/store/carts/:id/promotions/:code` | Quitar promoción. |
-| POST | `/store/carts/:id/shipping-methods` | Elegir envío o retiro. |
+| GET / POST | `/store/carts/:id` | Obtener y actualizar carrito (email, direcciones). |
+| POST | `/store/carts/:id/line-items` | Agregar variante. |
+| POST / DELETE | `/store/carts/:id/line-items/:line_id` | Cambiar cantidad o quitar. |
+| GET | `/store/shipping-options` | Opciones de envío del carrito. |
+| POST | `/store/carts/:id/shipping-methods` | Elegir retiro o envío. |
+| GET | `/store/payment-providers` | Proveedores de la región. |
 | POST | `/store/payment-collections` | Crear colección de pago. |
-| POST | `/store/payment-collections/:id/payment-sessions` | Iniciar sesión de pago con el proveedor elegido. |
-| POST | `/store/carts/:id/complete` | Completar el carrito y crear el pedido. |
-| GET | `/store/orders/:id` | Detalle del pedido, con token de acceso. |
+| POST | `/store/payment-collections/:id/payment-sessions` | Iniciar sesión de pago. |
+| POST | `/store/carts/:id/complete` | Completar carrito y crear pedido. |
 
-**Admin**
+La aplicación y quita de promociones no se expone al cliente. La hace el backend (sección 9).
 
-| Método | Ruta | Uso |
-|---|---|---|
-| GET / POST | `/admin/products` | Listar y crear productos. |
-| GET / POST / PATCH | `/admin/product-categories` | Gestionar categorías. |
-| GET / POST / PATCH | `/admin/product-options` | Gestionar opciones (talle, color). |
-| GET / POST | `/admin/promotions` | Gestionar promociones. |
-| GET / POST | `/admin/orders` | Listar y consultar pedidos. |
-| POST | `/admin/draft-orders` | Crear pedido manual, base para la venta en el local. |
-| GET / POST | `/admin/inventory-items` | Consultar y ajustar stock. |
+**Admin:** el panel de Medusa usa sus propias rutas para productos, categorías, opciones, inventario, promociones, pedidos, pagos, reembolsos, usuarios y canales. No se documentan aquí porque no las consume código propio, salvo las que usen las extensiones del panel.
 
-### 8.3 Endpoints propios [Propio]
+### 13.3 Endpoints propios [Propio]
 
 **Tienda**
 
 | Método | Ruta | Autenticación | Uso |
 |---|---|---|---|
-| GET | `/store/settings/public` | Clave publicable | Devuelve `transfer_discount_percent`, `bank_account`, `shipping_flat_rate` y `transfer_proof_formats`. |
-| POST | `/store/orders/:id/transfer-proof` | Token del pedido | Sube el comprobante de transferencia. |
-| GET | `/store/orders/:id/transfer-status` | Token del pedido | Estado de la transferencia y motivo de rechazo, si lo hay. |
+| POST | `/store/checkout/:cart_id/payment-method` | Clave publicable | Elegir tarjeta o transferencia. Aplica o quita la promoción e inicia la sesión de pago. |
+| GET | `/store/checkout/bank-account` | Clave publicable | Datos bancarios para mostrar en el checkout. |
+| GET | `/store/order-access/:id` | Token del pedido | Detalle del pedido para el cliente invitado. |
+| POST | `/store/order-access/:id/transfer-proofs` | Token del pedido | Subir comprobante. |
+| GET | `/store/order-access/:id/transfer-proofs` | Token del pedido | Estado del último comprobante y motivo de rechazo. |
+| POST | `/hooks/mercadopago` | Firma de Mercado Pago | Webhook (solo si se desarrolla el proveedor propio; con plugin, la ruta la define el plugin). |
 
 **Admin**
 
 | Método | Ruta | Rol | Uso |
 |---|---|---|---|
-| GET | `/admin/transfers` | admin, vendedor | Lista de transferencias, filtrable por estado. |
-| GET | `/admin/transfers/:id/proof` | admin | Devuelve un enlace firmado y temporal al comprobante. |
-| POST | `/admin/transfers/:id/confirm` | admin | Confirma la transferencia y marca el pedido como pagado. |
-| POST | `/admin/transfers/:id/reject` | admin | Rechaza el comprobante, con motivo obligatorio. |
-| GET / PATCH | `/admin/settings` | admin | Lee y actualiza la configuración del sistema. |
-| POST | `/admin/product-colors` | admin | Crea o actualiza la muestra de color de una opción. |
-| POST | `/admin/pos/sales` | admin, vendedor | Registra una venta en el local. |
-| POST | `/admin/products/:id/stock-adjustments` | admin | Ajusta stock con motivo obligatorio. |
+| GET | `/admin/transfer-proofs` | admin, vendedor (lectura) | Cola de comprobantes, filtrable por estado. |
+| GET | `/admin/transfer-proofs/:id/url` | admin, vendedor (lectura) | Enlace firmado de 15 minutos. |
+| POST | `/admin/transfer-proofs/:id/accept` | admin | Aceptar y capturar el pago. |
+| POST | `/admin/transfer-proofs/:id/reject` | admin | Rechazar con motivo. |
+| GET / PATCH | `/admin/store-settings` | admin | Leer y editar las claves de `store.metadata` de la sección 6. |
+| POST | `/admin/pos/sales` | admin, vendedor | Registrar venta en el local. |
+| GET | `/admin/pos/sales/summary` | admin | Totales del día por medio de pago. |
 
-## 9. Payloads y DTOs
+## 14. Payloads y DTOs
 
-### 9.1 Pago por transferencia (proveedor propio)
+Los DTOs se definen en `packages/shared-types` y se validan en el backend con el validador de Medusa o con Zod.
 
-Los DTOs se definen en `packages/shared-types` y se validan en el backend con Zod o el validador que incluya Medusa.
+### 14.1 Elegir medio de pago
 
-**Iniciar sesión de pago por transferencia** (`POST /store/payment-collections/:id/payment-sessions`)
+`POST /store/checkout/:cart_id/payment-method`
+
+```json
+{ "method": "transfer" }
+```
+
+| Campo | Tipo | Valores |
+|---|---|---|
+| `method` | enum | `card`, `transfer` |
+
+Respuesta:
 
 ```json
 {
-  "provider_id": "pp_transfer_manual"
+  "cart": { "id": "cart_01", "subtotal": 30000, "discount_total": 3000, "total": 27000 },
+  "payment_session": { "provider_id": "pp_system_default", "status": "pending" }
 }
 ```
 
-**Respuesta**
+Con `card`, la respuesta incluye los datos necesarios para redirigir a Checkout Pro.
 
-```json
-{
-  "payment_collection": {
-    "id": "paycol_01",
-    "amount": 9000,
-    "payment_sessions": [
-      {
-        "id": "payses_01",
-        "provider_id": "pp_transfer_manual",
-        "status": "pending",
-        "data": {
-          "reference": "ORD-2026-000123",
-          "reserved_until": "2026-10-25T18:00:00Z"
-        }
-      }
-    ]
-  }
-}
-```
+### 14.2 Subir comprobante
 
-**Subir comprobante** (`POST /store/orders/:id/transfer-proof`, `multipart/form-data`)
+`POST /store/order-access/:id/transfer-proofs` · `multipart/form-data` · header `x-order-token`
 
 | Campo | Tipo | Requerido | Validación |
 |---|---|---|---|
-| `file` | archivo | sí | JPG, PNG o PDF. Máximo `transfer_proof_max_mb`. |
-| `token` | string | sí | Token de acceso al pedido, en el header `x-order-token`. |
+| `file` | archivo | sí | JPG, PNG o PDF por contenido, máximo 5 MB. |
 
-**Respuesta**
+Respuesta:
 
 ```json
 {
-  "transfer": {
-    "id": "trf_01",
-    "order_id": "order_01",
-    "status": "proof_received",
-    "uploaded_at": "2026-10-23T15:30:00Z"
+  "transfer_proof": {
+    "id": "tp_01",
+    "status": "pending_review",
+    "created_at": "2026-10-23T15:30:00Z"
   }
 }
 ```
 
-**Confirmar transferencia** (`POST /admin/transfers/:id/confirm`)
+### 14.3 Rechazar comprobante
+
+`POST /admin/transfer-proofs/:id/reject`
 
 ```json
-{
-  "note": "Acreditado en cuenta el 23/10"
-}
+{ "reason": "El monto del comprobante no coincide con el total del pedido." }
 ```
 
-**Rechazar transferencia** (`POST /admin/transfers/:id/reject`)
+El motivo tiene entre 10 y 300 caracteres y es visible para el cliente.
+
+### 14.4 Aceptar comprobante
+
+`POST /admin/transfer-proofs/:id/accept`
 
 ```json
-{
-  "reason": "El monto del comprobante no coincide con el total del pedido."
-}
+{ "note": "Acreditado el 23/10" }
 ```
 
-El motivo es obligatorio, tiene entre 10 y 300 caracteres, y es visible para el cliente.
+La nota es opcional e interna. Aceptar captura el pago del pedido.
 
-### 9.2 Venta en el local
+### 14.5 Venta en el local
 
-**Registrar venta** (`POST /admin/pos/sales`)
+`POST /admin/pos/sales`
 
 ```json
 {
@@ -386,10 +411,7 @@ El motivo es obligatorio, tiene entre 10 y 300 caracteres, y es visible para el 
     { "variant_id": "variant_02", "quantity": 1 }
   ],
   "payment_method": "cash",
-  "customer": {
-    "name": "Ana Pérez",
-    "document": null
-  },
+  "customer": { "name": "Ana Pérez", "document": null },
   "note": null
 }
 ```
@@ -397,304 +419,276 @@ El motivo es obligatorio, tiene entre 10 y 300 caracteres, y es visible para el 
 | Campo | Tipo | Requerido | Valores |
 |---|---|---|---|
 | `items` | array | sí | Al menos un elemento. |
-| `items[].variant_id` | string | sí | Variante existente y activa. |
+| `items[].variant_id` | string | sí | Variante existente, publicada y con stock. |
 | `items[].quantity` | integer | sí | Mayor que 0. |
-| `payment_method` | enum | sí | `cash`, `transfer`, `card`. |
-| `customer` | objeto | no | Nombre opcional. Documento opcional. |
+| `payment_method` | enum | sí | `cash`, `transfer`, `card` (se guarda como dato de la venta). |
+| `customer` | objeto | no | Nombre y documento opcionales. |
 | `note` | string | no | Hasta 300 caracteres. |
 
-**Respuesta**
+Respuesta:
 
 ```json
 {
   "sale": {
-    "id": "order_pos_01",
+    "order_id": "order_01",
+    "sales_channel": "Local",
     "total": 18500,
     "payment_method": "cash",
-    "items": [
-      { "variant_id": "variant_01", "quantity": 2, "unit_price": 6500 },
-      { "variant_id": "variant_02", "quantity": 1, "unit_price": 5500 }
-    ],
     "created_at": "2026-10-23T16:02:11Z"
   }
 }
 ```
 
-### 9.3 Ajuste de stock
+### 14.6 Configuración del comercio
 
-**Ajustar stock** (`POST /admin/products/:id/stock-adjustments`)
-
-```json
-{
-  "variant_id": "variant_01",
-  "quantity_change": -1,
-  "reason": "Producto dañado en depósito"
-}
-```
-
-| Campo | Tipo | Requerido | Validación |
-|---|---|---|---|
-| `variant_id` | string | sí | Variante del producto. |
-| `quantity_change` | integer | sí | Distinto de 0. Puede ser negativo. |
-| `reason` | string | sí | Entre 5 y 200 caracteres. |
-
-El stock resultante no puede ser negativo. Si el ajuste lo dejaría negativo, se devuelve `STOCK_INSUFFICIENT`.
-
-### 9.4 Configuración
-
-**Actualizar configuración** (`PATCH /admin/settings`)
+`PATCH /admin/store-settings`
 
 ```json
 {
-  "transfer_discount_percent": 10,
-  "reservation_ttl_hours": 48,
   "bank_account": {
     "holder": "Nombre del comercio",
     "cbu": "0000000000000000000000",
     "alias": "comercio.alias",
     "bank": "Banco"
-  }
+  },
+  "transfer_reservation_hours": 24,
+  "max_units_per_variant": 5,
+  "admin_notification_email": "dueno@comercio.com"
 }
 ```
 
-Validaciones:
+Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, números, puntos o guiones; horas de reserva entre 1 y 72; unidades por variante entre 1 y 50.
 
-- `transfer_discount_percent`: número entre 0 y 100, con hasta dos decimales.
-- `reservation_ttl_hours`: entero entre 1 y 168.
-- `cbu`: 22 dígitos. Si es CVU, 22 dígitos también.
-- `alias`: entre 6 y 20 caracteres, letras, números, puntos o guiones.
+## 15. Errores
 
-## 10. Errores
-
-### 10.1 Formato
-
-Todos los errores siguen el formato de Medusa, con un código propio agregado:
+### 15.1 Formato
 
 ```json
 {
   "type": "invalid_data",
   "code": "TRANSFER_PROOF_TOO_LARGE",
-  "message": "El comprobante supera el tamaño máximo de 5 MB.",
-  "details": {
-    "max_mb": 5,
-    "received_mb": 7.4
-  }
+  "message": "El comprobante supera 5 MB. Comprimí la imagen o subí un PDF.",
+  "details": { "max_mb": 5 }
 }
 ```
 
 | Campo | Descripción |
 |---|---|
-| `type` | Tipo de Medusa: `invalid_data`, `not_found`, `unauthorized`, `not_allowed`, `conflict`, `unexpected_state`. |
-| `code` | Código propio del sistema, estable y pensado para el storefront. |
-| `message` | Texto en español, claro para el usuario final o el admin. |
-| `details` | Datos adicionales para resolver el problema. Opcional. |
+| `type` | Tipo de error de Medusa. |
+| `code` | Código propio, estable, para el storefront y el panel. |
+| `message` | Texto en español que explica qué pasó y cómo seguir. |
+| `details` | Datos adicionales. Nunca incluye información interna ni de otros pedidos. |
 
-Los mensajes deben explicar qué pasó y cómo recuperarse. Por ejemplo, "El comprobante supera 5 MB. Comprime la imagen o sube un PDF."
+### 15.2 Catálogo
 
-### 10.2 Catálogo de códigos
+| Código | HTTP | Cuándo | Cómo se recupera el usuario |
+|---|---|---|---|
+| `STOCK_INSUFFICIENT` | 409 | No hay stock suficiente. | Reducir la cantidad o elegir otra variante. |
+| `MAX_UNITS_EXCEEDED` | 422 | Supera el máximo de unidades por variante. | Reducir la cantidad o comprar en el local. |
+| `VARIANT_UNAVAILABLE` | 409 | Variante despublicada o sin precio. | Elegir otra combinación. |
+| `DISCOUNT_PAYMENT_MISMATCH` | 422 | Descuento de transferencia con otro medio de pago. | Volver a elegir el medio de pago. |
+| `PAYMENT_PROVIDER_UNAVAILABLE` | 503 | Mercado Pago no responde. | Reintentar o pagar por transferencia. |
+| `PAYMENT_AMOUNT_MISMATCH` | 409 | El monto pagado no coincide con el pedido. | Interno: se registra y el admin revisa. |
+| `ORDER_ALREADY_PAID` | 409 | El pedido ya está pagado. | Ver el estado del pedido. |
+| `ORDER_EXPIRED` | 409 | El pedido venció antes de aceptar un comprobante. | Hacer un pedido nuevo. |
+| `ORDER_ACCESS_DENIED` | 404 | Token inválido o vencido. | Usar el enlace del email. No revela si el pedido existe. |
+| `PENDING_ORDERS_LIMIT` | 429 | Superó el límite de pedidos pendientes. | Completar o esperar el vencimiento de un pedido anterior. |
+| `RATE_LIMITED` | 429 | Demasiadas solicitudes. | Esperar y reintentar. |
+| `TRANSFER_PROOF_TOO_LARGE` | 413 | Archivo mayor a 5 MB. | Comprimir o subir PDF. |
+| `TRANSFER_PROOF_FORMAT_INVALID` | 415 | Formato no permitido. | Subir JPG, PNG o PDF. |
+| `TRANSFER_PROOF_PENDING` | 409 | Ya hay un comprobante en revisión. | Esperar la revisión. |
+| `TRANSFER_PROOF_NOT_REVIEWABLE` | 409 | El comprobante ya fue revisado. | Revisar el estado actual. |
+| `REJECTION_REASON_REQUIRED` | 422 | Motivo de rechazo inválido. | Escribir un motivo de 10 a 300 caracteres. |
+| `SALE_ITEMS_EMPTY` | 422 | Venta sin productos. | Agregar al menos un producto. |
+| `SETTING_INVALID` | 422 | Valor de configuración inválido. | Corregir el campo indicado. |
+| `ROLE_NOT_ALLOWED` | 403 | El rol no tiene permiso para la acción. | Pedir el permiso al admin. |
+| `WEBHOOK_SIGNATURE_INVALID` | 401 | Firma de Mercado Pago inválida. | No aplica al usuario. Se registra y se descarta. |
 
-| Código | HTTP | Tipo | Cuándo | Recuperación |
-|---|---|---|---|---|
-| `STOCK_INSUFFICIENT` | 409 | conflict | No hay stock suficiente para una variante. | Reducir la cantidad o quitar el producto. |
-| `VARIANT_INACTIVE` | 409 | conflict | La variante fue desactivada. | Elegir otra combinación de talle y color. |
-| `PRODUCT_UNPUBLISHED` | 404 | not_found | El producto fue despublicado. | Volver al catálogo. |
-| `DISCOUNT_PAYMENT_MISMATCH` | 422 | not_allowed | El descuento de transferencia se intentó usar con otro medio de pago. | Recalcular el total y reintentar. |
-| `PROMOTION_EXPIRED` | 422 | invalid_data | La promoción venció. | Continuar con el precio de lista. |
-| `PAYMENT_PROVIDER_UNAVAILABLE` | 503 | unexpected_state | Mercado Pago no respondió. | Reintentar en unos minutos o elegir transferencia. |
-| `ORDER_ALREADY_PAID` | 409 | conflict | Se intentó pagar un pedido ya pagado. | Ver el estado del pedido. |
-| `RESERVATION_EXPIRED` | 409 | unexpected_state | La reserva de stock venció antes de subir el comprobante. | Crear un pedido nuevo. |
-| `TRANSFER_PROOF_TOO_LARGE` | 413 | invalid_data | El comprobante supera el tamaño máximo. | Comprimir la imagen o subir un PDF. |
-| `TRANSFER_PROOF_FORMAT_INVALID` | 415 | invalid_data | Formato no permitido. | Subir JPG, PNG o PDF. |
-| `TRANSFER_PROOF_ALREADY_SUBMITTED` | 409 | conflict | Ya existe un comprobante para este pedido. | Esperar la revisión del comercio. |
-| `TRANSFER_NOT_REVIEWABLE` | 409 | unexpected_state | Se intentó confirmar o rechazar una transferencia en un estado que no lo permite. | Revisar el estado actual. |
-| `REJECTION_REASON_REQUIRED` | 422 | invalid_data | El rechazo no tiene motivo válido. | Escribir un motivo de 10 a 300 caracteres. |
-| `SALE_ITEMS_EMPTY` | 422 | invalid_data | La venta no tiene productos. | Agregar al menos un producto. |
-| `SETTING_INVALID` | 422 | invalid_data | Un valor de configuración no es válido. | Corregir el campo indicado en `details`. |
-| `WEBHOOK_SIGNATURE_INVALID` | 401 | unauthorized | La notificación de Mercado Pago no tiene firma válida. | No aplica para el usuario. Se registra y se descarta. |
-| `ORDER_TOKEN_INVALID` | 401 | unauthorized | El token de acceso al pedido es incorrecto o venció. | Consultar el pedido desde el enlace del email. |
+## 16. Autenticación y autorización
 
-## 11. Almacenamiento
+### 16.1 Tipos de acceso
 
-### 11.1 Base de datos
+| Quién | Mecanismo | Detalle |
+|---|---|---|
+| Superadmin, admin y vendedor | Usuario y contraseña de Medusa | Sesión del panel. **[Verificar]** si 2.22 usa cookie de sesión, JWT o ambos, y su vencimiento. |
+| Storefront | Clave publicable del canal "Web" | Identifica la tienda. Es pública y no da acceso a datos privados. |
+| Cliente comprando | Sin cuenta | El identificador del carrito vive en una cookie `HttpOnly` del storefront. |
+| Cliente consultando su pedido | Token de acceso al pedido | Ver `seguridad.md`, SEC-24. |
 
-PostgreSQL es la única fuente de verdad para pedidos, stock, precios y configuración. Las migraciones se gestionan con las herramientas de Medusa. Se hacen copias de seguridad diarias y se prueba la restauración al menos una vez por mes.
+### 16.2 Roles
 
-### 11.2 Imágenes de producto [Medusa + storage propio]
+- **Opción preferida:** usar los roles y políticas nativos de Medusa. Las notas de versión recientes muestran trabajo en roles, políticas y superadmin dentro de Medusa. **[Verificar]** si está disponible en la versión de código abierto 2.22, si requiere un flag y cómo se configura.
+- **Alternativa:** guard propio sobre `/admin/*` con lista de rutas permitidas para el vendedor y **denegación por defecto**.
+- En ambos casos, cada ruta del admin tiene una prueba automatizada por rol.
+- **Limitación conocida:** el menú del panel puede mostrar secciones que el usuario no puede usar. Se documenta para el dueño y se evalúa ocultarlas con extensiones del panel.
 
-- Las imágenes se guardan en un servicio compatible con S3, a través del proveedor de archivos de Medusa.
-- Son públicas, con caché de CDN.
-- Se aceptan JPG, PNG y WebP. Se recomienda generar versiones redimensionadas para la tienda.
+## 17. Almacenamiento
 
-**Decidido:** Cloudflare R2 como proveedor. Las imágenes se sirven desde un dominio propio (`imagenes.<dominio-del-cliente>`) que apunta al bucket. Las URLs guardadas en la base usan ese dominio, no el de R2, para que una migración futura a MinIO solo implique cambiar el destino del dominio y las variables de entorno.
+### 17.1 Base de datos
 
-**Migración futura a MinIO:** se planifica si el costo o la necesidad de control lo justifican. Antes de elegirlo se revisan sus condiciones de licencia y distribución vigentes. El proceso incluye copiar los objetos entre buckets, verificar que cada URL responda y mantener el dominio durante la transición.
+PostgreSQL es la única fuente de verdad. Migraciones con las herramientas de Medusa, ejecutadas antes de cada despliegue.
 
-**Variables de entorno:**
+### 17.2 Imágenes de producto [Medusa]
+
+- Proveedor oficial `file-s3` apuntando a Cloudflare R2.
+- Servidas desde un dominio propio (`imagenes.<dominio>`). Las URLs guardadas usan ese dominio, así una migración futura a MinIO no requiere reescribir datos.
+- El storefront las optimiza con `next/image`, con el dominio declarado en la configuración.
+
+### 17.3 Comprobantes [Propio]
+
+- Bucket privado separado. El módulo de archivos de Medusa acepta un solo proveedor, por eso los comprobantes usan el SDK de S3 desde el módulo `transfer-proof`.
+- Detalle de controles en `seguridad.md`, SEC-51.
+
+### 17.4 Respaldos
+
+Bucket privado exclusivo, con credenciales propias. Ver `seguridad.md`, SEC-90.
+
+### 17.5 Variables de entorno
+
+**Backend**
 
 ```
+NODE_ENV=
+MEDUSA_WORKER_MODE=            # server | worker  [Verificar nombre exacto]
+DISABLE_MEDUSA_ADMIN=          # false en servidor, true en worker  [Verificar]
+MEDUSA_BACKEND_URL=
+DATABASE_URL=
+REDIS_URL=
+JWT_SECRET=
+COOKIE_SECRET=
+STORE_CORS=
+ADMIN_CORS=
+AUTH_CORS=
+
+# Imágenes (público)
 S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 S3_REGION=auto
-S3_BUCKET=productos-publico
+S3_BUCKET=
 S3_ACCESS_KEY_ID=
 S3_SECRET_ACCESS_KEY=
-S3_FILE_URL=https://imagenes.<dominio-del-cliente>
+S3_FILE_URL=https://imagenes.<dominio>
+
+# Comprobantes (privado)
+PROOFS_S3_BUCKET=
+PROOFS_S3_ACCESS_KEY_ID=
+PROOFS_S3_SECRET_ACCESS_KEY=
+
+# Mercado Pago
+MERCADOPAGO_ACCESS_TOKEN=
+MERCADOPAGO_WEBHOOK_SECRET=
+
+# Email
+EMAIL_PROVIDER_API_KEY=
+EMAIL_FROM=
 ```
 
-**Reglas de carga:** JPG, PNG o WebP; máximo 5 MB por imagen; nombres de archivo generados por el sistema, sin el nombre original.
+**Storefront**
 
-### 11.3 Comprobantes de transferencia [Propio]
+```
+NEXT_PUBLIC_MEDUSA_BACKEND_URL=
+NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=
+NEXT_PUBLIC_IMAGES_DOMAIN=imagenes.<dominio>
+```
 
-- Se guardan en un bucket **privado**, separado del de imágenes. No se usa el módulo de archivos de Medusa porque acepta un solo proveedor y está pensado para archivos públicos. Un módulo propio usa el SDK de S3 directamente contra R2 para escribir, leer y firmar enlaces.
-- Nunca tienen URL pública. El admin accede mediante un enlace firmado con vencimiento corto (15 minutos).
-- El nombre del archivo en el storage es un identificador generado, no el nombre original.
-- Se valida el tipo MIME real del archivo, no solo la extensión.
-- Retención: se conservan mientras el pedido esté activo, y se define una política de borrado para pedidos antiguos antes de producción.
+**Respaldos** (servicio o job de respaldo): credenciales propias del bucket de respaldos y clave de cifrado.
 
-## 12. Autenticación y autorización
+## 18. Storefront
 
-### 12.1 Admin [Medusa]
+- Se construye **desde cero** con Next.js 16.4.3 y el SDK de JavaScript de Medusa, usando el starter oficial solo como referencia. El starter tiene su propio stack, que no coincide con el elegido.
+- **Server Components** para catálogo, categorías y detalle de producto.
+- **Server Actions** para modificar el carrito y elegir el medio de pago.
+- El **carrito vive en Medusa**. El storefront solo guarda su identificador en una cookie `HttpOnly`.
+- **TanStack Query** solo para datos que se consultan desde el navegador después de cargar la página, como el estado del comprobante en la página del pedido.
+- **Zustand** solo para estado de interfaz: apertura del carrito lateral, filtros en edición y preferencias visuales. Nunca para precios, stock ni contenido del carrito.
+- **Storybook** documenta los componentes del storefront.
+- Se despliega como contenedor en Coolify, en modo `standalone`.
 
-- Usuarios creados desde el panel de Medusa o por el superadmin.
-- Autenticación con email y contraseña. El JWT tiene vencimiento configurable.
-- Contraseñas almacenadas con hash, según el estándar de Medusa.
-
-### 12.2 Roles del MVP0 [Propio, opción A]
-
-Medusa no ofrece roles con permisos granulares en su versión base, así que el MVP0 usa tres perfiles:
-
-| Perfil | Implementación |
-|---|---|
-| Superadmin | Usuario marcado como superadmin. Acceso total, incluida la configuración técnica. |
-| Admin | Usuario con rol de administrador del comercio. Acceso a todo el panel excepto a la configuración técnica. |
-| Vendedor | Usuario con acceso restringido por un middleware propio. Solo puede acceder a ventas en el local, transferencias en modo lectura y pedidos en modo lectura. |
-
-El middleware de rol vendedor se implementa como un guard en las rutas `/admin/*`, con una lista explícita de rutas permitidas. Por defecto, toda ruta no listada está denegada.
-
-**Pendiente de decisión:** si el MVP1 necesita permisos finos, se evaluará una solución de terceros o un módulo propio.
-
-### 12.3 Clientes de la tienda
-
-- Compra como invitado. No hay sesión obligatoria.
-- El acceso al pedido se da con un token de un solo uso, incluido en el enlace del email de confirmación.
-- En MVP1 se incorporarán cuentas de cliente.
-
-## 13. Notificaciones y emails
-
-Los emails son transaccionales, se disparan desde subscribers de Medusa y usan el proveedor de notificaciones configurado.
+## 19. Notificaciones
 
 | Evento | Destinatario | Contenido |
 |---|---|---|
-| Pedido creado | Cliente | Número de pedido, total, medio de pago y enlace al pedido. |
-| Pedido pagado | Cliente | Confirmación y próximos pasos. |
-| Transferencia pendiente | Cliente | Datos bancarios, monto exacto, referencia y fecha de vencimiento de la reserva. |
-| Comprobante recibido | Admin | Aviso con enlace al panel. |
-| Transferencia confirmada | Cliente | Confirmación de pago. |
-| Transferencia rechazada | Cliente | Motivo y enlace para subir un nuevo comprobante. |
+| Pedido por transferencia creado | Cliente | Datos bancarios, monto, referencia, vencimiento y enlace al pedido. |
+| Pedido pagado | Cliente | Confirmación, ítems, total y enlace al pedido. |
+| Comprobante recibido | Admin | Enlace a la cola de revisión. |
+| Comprobante rechazado | Cliente | Motivo y enlace para subir otro. |
+| Pedido cancelado | Cliente | Motivo (vencimiento o cancelación del comercio). |
 
-**Pendiente:** elegir proveedor de email. Opciones compatibles con Medusa: SendGrid, Resend u otro con proveedor oficial o comunitario.
+Los emails se envían desde suscriptores del worker, con reintentos. El proveedor está pendiente de elección (TEC-02 de `planning.md`).
 
-## 14. Integración con Mercado Pago
+## 20. Despliegue en Coolify
 
-### 14.1 Flujo
-
-1. El storefront crea la sesión de pago con el proveedor de Mercado Pago. Medusa devuelve la URL o la preferencia de Checkout Pro.
-2. El cliente completa el pago en Mercado Pago.
-3. Mercado Pago envía una notificación (webhook) al backend.
-4. El backend verifica la firma de la notificación, consulta el estado del pago en la API de Mercado Pago y actualiza el pedido.
-5. El storefront consulta el estado del pedido para mostrar la confirmación.
-
-### 14.2 Requisitos de seguridad
-
-- El backend nunca confía en el estado del pago que viene en el navegador. Solo actúa sobre la consulta directa a la API de Mercado Pago.
-- Las notificaciones se verifican con la firma que Mercado Pago envía en los headers, usando el secreto configurado.
-- Las notificaciones se procesan de forma idempotente. Recibir la misma dos veces no duplica pagos ni stock.
-- Si la notificación no llega, un proceso de reconciliación consulta periódicamente los pagos pendientes.
-
-### 14.3 Plugin o proveedor propio
-
-Hay plugins de la comunidad para Medusa que integran Mercado Pago. Antes de adoptar uno, se revisa:
-
-- Fecha del último commit y actividad del mantenedor.
-- Compatibilidad con Medusa 2.22.
-- Soporte de webhooks con verificación de firma.
-- Licencia.
-
-Si ninguno cumple estos criterios, se desarrolla un proveedor propio. El contrato de proveedor de pago de Medusa es acotado, y la mayor parte del trabajo está en las pruebas.
-
-## 15. Seguridad
-
-- HTTPS obligatorio en todos los entornos fuera de desarrollo local.
-- Rate limiting en login de admin, creación de carritos y subida de comprobantes.
-- Validación de todas las entradas en el backend. El storefront no es una barrera de seguridad.
-- Encabezados de seguridad estándar en las respuestas HTTP.
-- Logs sin datos sensibles: no se registran CBU, número de documento ni contenido de comprobantes.
-- Acceso al panel de administración limitado por IP solo si el dueño lo solicita.
-- Política de contraseñas para usuarios del admin: longitud mínima y bloqueo tras intentos fallidos.
-- Revisión de dependencias con herramientas de auditoría antes de cada despliegue.
-
-## 16. Datos personales
-
-- Los datos de clientes (nombre, email, teléfono, dirección y documento si se informa) se usan solo para procesar pedidos.
-- El sitio debe informar el tratamiento de datos y los derechos del titular, según la normativa argentina vigente.
-- Se define una política de retención. Los datos de pedidos se conservan por el plazo que exige la normativa fiscal y contable, y se revisa con el cliente.
-- Pendiente: revisar con un profesional los textos legales y la política de privacidad antes del lanzamiento.
-
-## 17. Entornos y despliegue
-
-| Entorno | Propósito | Base de datos | Mercado Pago |
+| Servicio | Imagen | Expuesto | Notas |
 |---|---|---|---|
-| Desarrollo | Trabajo diario en local | PostgreSQL local con Docker | Credenciales de prueba |
-| Staging | Pruebas con el cliente | PostgreSQL dedicado | Credenciales de prueba |
-| Producción | Operación real | PostgreSQL dedicado con respaldos | Credenciales de producción |
+| `storefront` | Dockerfile del storefront | Sí, por el proxy | Next.js en modo `standalone`. |
+| `medusa-server` | Dockerfile del backend | Sí, por el proxy | API, panel y webhooks. |
+| `medusa-worker` | Misma imagen del backend | No | Jobs y suscriptores. |
+| `postgres` | Base de datos de Coolify | No | Sin puertos publicados. |
+| `redis` | Base de datos de Coolify | No | Sin puertos publicados. |
 
-- Desarrollo: `docker compose up` levanta PostgreSQL, Redis y el backend.
-- Build: imagen Docker del backend y build estático del storefront.
-- **Decidido:** backend y base de datos en una VPS administrada con Coolify. El storefront se despliega en Vercel.
-- Coolify crea un proyecto con cuatro servicios: backend (servidor HTTP), worker (tareas en segundo plano), PostgreSQL y Redis. Backend y worker usan la misma imagen Docker con distinto modo de arranque, según la guía de la comunidad. Confirmar en la documentación de Medusa.
-- Docker es obligatorio en el proyecto: `Dockerfile` para el backend y `docker-compose.yml` para desarrollo local con PostgreSQL y Redis.
-- Copias de seguridad de PostgreSQL a almacenamiento externo (R2, en un bucket separado) con retención definida. Las copias de la VPS no alcanzan.
-- Actualizaciones de seguridad del sistema operativo y de Coolify, con ventana de mantenimiento fijada.
-- Migraciones: se ejecutan antes de cada despliegue, con un paso de verificación.
-- Rollback: cada despliegue conserva la versión anterior de la imagen. La base de datos se restaura desde el último respaldo si una migración falla.
+**Entornos**
 
-## 18. Observabilidad
+| Entorno | Propósito | Mercado Pago |
+|---|---|---|
+| Desarrollo | Local con `docker compose` | Credenciales de prueba |
+| Staging | Proyecto separado en Coolify | Credenciales de prueba |
+| Producción | Proyecto separado en Coolify | Credenciales de producción |
 
-- Logs estructurados en JSON, con nivel, timestamp, identificador de pedido y de solicitud.
-- Métricas básicas: pedidos creados por hora, pagos aprobados y rechazados, comprobantes pendientes, errores 5xx.
-- Alertas por errores de pago recurrentes, fallas de conexión con Mercado Pago y caída del backend.
-- Monitoreo externo de disponibilidad de la tienda y del panel.
+**Proceso de despliegue**
+1. CI construye y prueba en cada pull request.
+2. Al integrar en la rama principal, Coolify despliega en staging.
+3. Producción se despliega de forma manual, desde una versión etiquetada.
+4. Las migraciones corren antes de levantar la nueva versión.
+5. Cada despliegue conserva la imagen anterior para volver atrás.
 
-## 19. Pruebas
+**Recursos:** para empezar, una VPS de 4 GB de RAM es un mínimo razonable y 8 GB da margen para storefront, backend, worker y bases en el mismo servidor. Son cifras orientativas, a validar con mediciones en staging.
+
+## 21. Observabilidad
+
+- Logs estructurados en JSON, con identificador de solicitud y de pedido, sin datos personales.
+- Métricas: pedidos por hora, pagos aprobados y rechazados, comprobantes pendientes, errores 5xx.
+- Monitoreo externo de disponibilidad del storefront y del backend.
+- Alertas definidas en `seguridad.md`, SEC-96.
+
+## 22. Pruebas
 
 | Tipo | Alcance | Herramienta |
 |---|---|---|
-| Unitarias | Cálculo de precio por transferencia, validación de DTOs, transiciones de estado. | Jest o Vitest |
-| Integración | Endpoints propios, proveedor de transferencia, hook de validación de descuento. | Test de Medusa + base de datos de prueba |
-| Flujo end-to-end | Compra con tarjeta y con transferencia, venta en el local, confirmación y rechazo de comprobantes. | Playwright |
-| Carga | Concurrencia en la reserva de stock para verificar que no haya sobreventa. | k6 |
+| Unitarias | Validaciones, derivación de estados, cálculo de límites | Vitest o Jest |
+| Integración | Rutas propias, hook de descuento, webhook, permisos por rol | Pruebas de integración de Medusa |
+| Extremo a extremo | Compra con tarjeta (sandbox), compra por transferencia, venta en el local, vencimiento, rechazo | Playwright |
+| Concurrencia | Compras simultáneas de la última unidad | k6 |
 
-Criterios mínimos antes de producción:
+Criterios mínimos antes de producción: ningún stock negativo, ningún descuento de transferencia cobrado con tarjeta, ningún webhook procesado dos veces y todos los controles del checklist de `seguridad.md`.
 
-- Ningún pedido puede quedar con stock negativo.
-- Ningún descuento de transferencia se aplica con tarjeta.
-- Toda notificación de Mercado Pago se procesa una sola vez.
-- Todo error expuesto al usuario tiene un código de la sección 10.
+## 23. Seguridad
 
-## 20. Decisiones pendientes
+El modelo de amenazas, los controles y el checklist de lanzamiento están en `seguridad.md`. Resumen de los controles que más condicionan esta arquitectura:
 
-| Tema | Opciones | Recomendación |
+- Panel de Coolify no expuesto a internet y actualizado (SEC-02, SEC-03).
+- Bases de datos sin puertos publicados (SEC-04).
+- Firma del webhook y verificación del monto con la API de Mercado Pago (SEC-32).
+- Token de acceso al pedido reutilizable, guardado como hash (SEC-24).
+- Denegación por defecto para el rol vendedor (SEC-21).
+- Límites contra pedidos falsos (SEC-40).
+
+## 24. Decisiones pendientes
+
+| Tema | Estado | Se resuelve en |
 |---|---|---|
-| Plugin de Mercado Pago | Comunidad o proveedor propio | Evaluar plugins con los criterios de la sección 14.3. Si fallan, proveedor propio. |
-| Storage de imágenes | Cloudflare R2, AWS S3 | **Cerrado:** Cloudflare R2, con migración futura a MinIO si hace falta. |
-| Proveedor de email | SendGrid, Resend | Según disponibilidad de cuenta del cliente. |
-| Hosting | VPS con Docker, Medusa Cloud | **Cerrado:** Coolify sobre VPS para backend y base; Vercel para el storefront. |
-| Dominio | — | Pendiente. |
-| Permisos finos | Módulo propio o solución de terceros | MVP1. |
-| Política de retención de comprobantes | Por antigüedad o por estado | Definir con el cliente antes de producción. |
+| Plugin de Mercado Pago o proveedor propio | Abierto | SP-02 |
+| Momento de creación del pedido con Mercado Pago | Recomendación: opción A | SP-02 |
+| Roles nativos de Medusa o guard propio | Abierto | SP-01 |
+| Proveedor de email | Abierto | TEC-02 |
+| Condición fiscal y configuración de impuestos | Abierto | Dueño del comercio |
+| Dominio | Abierto | Dueño del comercio |
+| Migración futura a MinIO | Planificada si hace falta | Fuera del MVP0 |
 
-## 21. Historial de cambios
+Decisiones cerradas: Medusa 2.22, PostgreSQL, Coolify para todos los servicios, Cloudflare R2 con dominio propio, Next.js 16.4.3 con el stack definido, transferencias sobre el proveedor manual de Medusa.
 
-| Fecha | Cambio |
-|---|---|
-| 2026-10-23 | Primera versión del documento de arquitectura. |
-| 2026-10-23 | Stack de storefront definido (Next.js 16.4.3, Tailwind, shadcn/ui, Phosphor, Zustand, TanStack Query, Storybook). Imágenes en Cloudflare R2 con dominio propio. Comprobantes en bucket privado con módulo propio. Despliegue en Coolify sobre VPS, storefront en Vercel. |
+## 25. Historial de cambios
+
+| Fecha | Versión | Cambio |
+|---|---|---|
+| 2026-10-23 | 1 | Primera versión. |
+| 2026-10-23 | 1.1 | Stack del storefront, R2, comprobantes privados y Coolify. |
+| 2026-10-23 | 2 | Revisión completa: transferencias sobre el proveedor manual, estados derivados de Medusa, configuración en `store.metadata`, descuento con código interno y una sola fuente, configuración base de Medusa, storefront y punto de venta redefinidos, todo en Coolify, endpoints corregidos, variables completas y vínculo con `seguridad.md`. |
