@@ -32,12 +32,19 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Local env files
+# Local env files (los .env.example y .env.template si se versionan)
+.env
+.env.*
 **/.env
-**/.env.local
-**/.env.development.local
-**/.env.test.local
-**/.env.production.local
+**/.env.*
+!.env.example
+!**/.env.example
+!**/.env.template
+
+# Archivos locales de Medusa y comprobantes (arquitectura.md, seccion 4)
+static/
+storage/
+.medusa/
 
 # Turbo
 .turbo
