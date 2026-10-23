@@ -145,8 +145,7 @@ export default async function setupStore({ container }: ExecArgs) {
   }
   report(!regions[0], `región "${REGION_NAME}"`)
 
-  // 4. Región fiscal. La alícuota depende de la condición fiscal del cliente
-  //    (pregunta bloqueante 1) y se carga cuando se confirme.
+  // 4. Región fiscal sin alícuota: el comercio no usa ARCA ni cobra impuestos.
   const { data: taxRegions } = await query.graph({
     entity: "tax_region",
     fields: ["id"],
@@ -373,6 +372,6 @@ export default async function setupStore({ container }: ExecArgs) {
   for (const line of kept) logger.info(`  ya existía: ${line}`)
   logger.info(`Clave publicable (NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY): ${key.token}`)
   logger.warn(
-    "Pendiente: la alícuota de impuestos depende de la condición fiscal del cliente, y el costo del envío a domicilio se define con el dueño."
+    "Pendiente: el costo del envío a domicilio se define con el dueño (queda en 0). No se configuran impuestos: el comercio no usa ARCA."
   )
 }
