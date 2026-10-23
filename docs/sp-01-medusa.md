@@ -3,13 +3,13 @@
 **Estado:** entregado, pendiente de aceptación del Product Owner
 **Fecha:** 2026-10-23
 **Versión verificada:** Medusa 2.22.0
-**Documentos relacionados:** `arquitectura.md` (actualizado con estas respuestas), `seguridad.md`, `planning.md` (SP-01)
+**Documentos relacionados:** `arquitectura.md` 3.1 y `seguridad.md` 2.1 (actualizados con estas respuestas), `planning.md` (SP-01)
 
 ## Cómo se verificó
 
 Tres fuentes, de más a menos confiable. Cada respuesta indica cuál la respalda.
 
-1. **Prueba real** contra el backend de desarrollo (Docker Compose): compra completa de punta a punta con la API de tienda, API de admin y consulta a la base.
+1. **Prueba real** contra el backend de desarrollo: compra completa de punta a punta con la API de tienda y la de admin, consulta a la base, subida de archivos y servidores en la máquina con PostgreSQL y Redis en Docker.
 2. **Código instalado** en `node_modules/@medusajs/*` y los `AGENTS.md` que cada paquete trae para su versión.
 3. **Documentación oficial** (`docs.medusajs.com`, agregando `.md` a la URL).
 
@@ -27,10 +27,15 @@ La prueba usó los datos de demostración de la starter (región Europa, EUR). L
 | 6 | Sesión de pago al cambiar promociones | **Se debe crear una sesión nueva** después de aplicar o quitar la promoción. |
 | 7 | Liberación de reservas al cancelar | **Sí.** |
 | 8 | Pedidos borrador para el punto de venta | **Sirven**, con pasos extra de pago y de stock. |
-| 9 | Modo servidor y worker | Confirmado, con los nombres de variable del proyecto. |
+| 9 | Modo compartido y separación servidor y worker | Compartido es el valor por defecto. La separación funciona con `MEDUSA_WORKER_MODE`. |
 | 10 | Sesión del panel | Cookie de sesión `HttpOnly`, 10 horas, `Secure` y `SameSite=Lax` en producción. |
 | 11 | Precios con impuestos incluidos | Configurable por moneda o región. Por defecto no. |
-| 12 | Límite de solicitudes nativo | **No hay.** Se resuelve en el proxy o con middleware propio. |
+| 12 | Límite de solicitudes nativo | **No hay.** Se implementa con middleware propio (SEC-17). |
+| 13 | Validación de archivos al subir | **No hay.** Medusa aceptó texto como `.png`, HTML, `.exe` y 6 MB. Middleware propio. |
+| 14 | Escuchar solo en localhost | `medusa develop --host 127.0.0.1` y `next dev -H 127.0.0.1`. Comprobado. |
+| 15 | Primer usuario | `npx -w @aloe/backend medusa user -e <email> -p <clave>`. |
+| 16 | `next/image` con imágenes de `localhost` | Next.js 16.4.3 las rechaza por defecto. Se resuelve con `dangerouslyAllowLocalIP` en desarrollo. |
+| 17 | URL de las imágenes locales | El proveedor local **no lee** `MEDUSA_BACKEND_URL`: usa su opción `backend_url`. |
 
 ## 1. Roles nativos (RBAC)
 
@@ -105,13 +110,13 @@ Sirven como base. `POST /admin/pos/sales` encadena estos pasos en un workflow pr
 
 **Pendiente para HU-34:** tras el pago, el stock físico (`stocked_quantity`) **no baja**: solo queda reservado. Baja al registrar el despacho (fulfillment). Para el local, la venta debe crear y completar el despacho en el mismo paso. Se verifica al implementar.
 
-## 9. Modo servidor y worker
+## 9. Modo compartido y separación servidor y worker
 
-**Fuente:** documentación oficial, código y prueba real con Docker Compose.
+**Fuente:** documentación oficial, código y prueba real.
 
-- `projectConfig.workerMode` acepta `shared`, `server` y `worker`. El nombre de la variable de entorno lo elegimos nosotros: `MEDUSA_WORKER_MODE`.
-- `DISABLE_MEDUSA_ADMIN` se conecta a `admin.disable`. Con `true`, el worker responde 404 en `/app`.
-- Comprobado: servidor (con panel, migra la base) y worker (sin panel, no migra) corren desde la misma imagen.
+- **Compartido (MVP0 local):** es el valor por defecto de `projectConfig.workerMode`. Un solo proceso atiende solicitudes y ejecuta jobs y suscriptores. No requiere configuración. Es lo que corre `npm run dev`.
+- **Separación (despliegue, TEC-03):** `workerMode` acepta `server` y `worker`. El nombre de la variable de entorno lo elegimos nosotros: `MEDUSA_WORKER_MODE`. `admin.disable` con `DISABLE_MEDUSA_ADMIN=true` apaga el panel en el worker.
+- Se probó la separación con dos contenedores de la misma imagen: el servidor migró la base y el worker no, y el worker respondió 404 en `/app`. Esa prueba ya no es parte del repositorio, porque los Dockerfiles son de la etapa de despliegue; queda en el historial de Git.
 - Con procesos separados, el bus de eventos y el motor de workflows de Redis son obligatorios. Es inferencia: la página citada no menciona Redis.
 - Medusa 2.11 en adelante admite `medusa start --cluster N --servers X --workers Y`.
 
@@ -145,3 +150,48 @@ No hay limitador de solicitudes. Se aplica en el proxy de Coolify o con un middl
 - **Mercado Pago:** Medusa solo trae el proveedor de Stripe. SP-02 sigue pendiente.
 - **Redis:** existen los módulos de caché y de bloqueo (`locking-redis`). El bloqueo es relevante para HU-47 (sobreventa) y no se configuró todavía.
 - **Rutas nativas usadas por la tienda** (todas existen): `/store/products`, `/store/product-categories`, `/store/regions`, `/store/carts` y `/store/carts/:id`, `/line-items` (y `/:line_id`), `/promotions`, `/shipping-methods`, `/complete`, `/store/shipping-options`, `/store/payment-providers`, `/store/payment-collections` y `/payment-sessions`.
+
+## 13. Validación de archivos al subir
+
+**Fuente:** prueba real con `POST /admin/uploads` y el proveedor local.
+
+Medusa **no valida el tipo, el contenido ni el tamaño**. Con un usuario administrador, todas estas subidas respondieron 200 y quedaron en `static/`:
+
+| Archivo | Resultado |
+|---|---|
+| PNG válido | aceptado |
+| Texto con extensión `.png` | aceptado |
+| HTML con un `<script>` | aceptado |
+| `.exe` | aceptado |
+| PNG de 6 MB | aceptado |
+
+SEC-50 pide JPG, PNG o WebP de hasta 5 MB, validando el contenido real. Hace falta un middleware propio sobre `/admin/uploads` que verifique el tamaño y los primeros bytes del archivo (HU-05). Los archivos de prueba se borraron.
+
+## 14. Escuchar solo en localhost
+
+**Fuente:** prueba real.
+
+- Medusa: `medusa develop --host 127.0.0.1` (también `start`). Se comprobó con `lsof` que el proceso escucha en `127.0.0.1:9100` y que la IP de la red local rechaza la conexión.
+- Next.js: `next dev -H 127.0.0.1` y `next start -H 127.0.0.1`, con el mismo resultado en el puerto 3000.
+- Ambos scripts ya quedaron así en los `package.json`.
+- PostgreSQL y Redis: `127.0.0.1:<puerto>:<puerto>` en `docker-compose.yml`. `docker ps` los muestra solo en `127.0.0.1`.
+
+## 15. Primer usuario administrador
+
+**Fuente:** prueba real.
+
+`npx -w @aloe/backend medusa user -e <email> -p <contraseña>` crea el usuario después de migrar la base. No hay usuario por defecto.
+
+## 16. `next/image` con imágenes de localhost
+
+**Fuente:** prueba real contra el optimizador de Next.js 16.4.3.
+
+- Con `images.remotePatterns` apuntando a `localhost`, el optimizador responde 400: *"upstream image hostname resolved to private IP"*.
+- Con `images.dangerouslyAllowLocalIP: true` responde 200 y entrega la imagen optimizada.
+- Esa opción es una protección contra SSRF que se desactiva a propósito. Solo se activa en desarrollo (`NODE_ENV !== "production"`), con `remotePatterns` acotado al host y a la ruta `/static/**` que salen de `NEXT_PUBLIC_IMAGES_HOST`. En un despliegue las imágenes salen de un dominio público y no hace falta.
+
+## 17. URL de las imágenes con el proveedor local
+
+**Fuente:** prueba real.
+
+Con `MEDUSA_BACKEND_URL=http://localhost:9100`, la subida devolvió `http://localhost:9000/static/...`. El proveedor `file-local` toma la base de su opción `backend_url`, que por defecto es `http://localhost:9000`. Para cumplir HU-05 ("la URL base sale de `MEDUSA_BACKEND_URL`") hay que registrar el módulo de archivos en `medusa-config.ts` con `backend_url: process.env.MEDUSA_BACKEND_URL`.

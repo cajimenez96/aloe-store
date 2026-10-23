@@ -1,6 +1,6 @@
 # Seguridad: Tienda online + punto de venta (MVP0)
 
-**Versión:** 2
+**Versión:** 2.1
 **Estado:** borrador para revisión
 **Última actualización:** 2026-10-23
 **Alcance actual:** desarrollo local. Cada control indica cuándo aplica.
@@ -47,8 +47,8 @@
 
 | Punto de entrada | Alcance | Notas |
 |---|---|---|
-| Storefront (`:3000`) | Solo localhost | Debe escuchar solo en localhost. **[Verificar]** la opción en Next.js. |
-| Medusa (`:9000`: `/store`, `/admin`, `/app`, `/hooks`) | Solo localhost | Debe escuchar solo en localhost. **[Verificar]** la opción en Medusa. |
+| Storefront (`:3000`) | Solo localhost | **[Confirmado]** `next dev -H 127.0.0.1`: escucha en `127.0.0.1` y no responde por la IP de la red local. |
+| Medusa (`:9000`: `/store`, `/admin`, `/app`, `/hooks`) | Solo localhost | **[Confirmado]** `medusa develop --host 127.0.0.1`: escucha en `127.0.0.1` y no responde por la IP de la red local. |
 | PostgreSQL y Redis | Solo `127.0.0.1` | Docker publica puertos en todas las interfaces por defecto, por eso se fija `127.0.0.1` (SEC-04). |
 | Webhook de Mercado Pago | No recibe nada sin URL pública | Mercado Pago no puede llegar a `localhost`. |
 | Túnel temporal (opcional) | Internet, mientras esté activo | Expone todo el backend local. Ver SEC-07. |
@@ -93,7 +93,7 @@ Aplica si la plataforma elegida es Coolify, que es el plan previsto. Coolify tuv
 
 **SEC-04 · Bases de datos sin acceso desde la red.** [Local y despliegue]
 - **Local:** PostgreSQL y Redis se publican solo en `127.0.0.1` en `docker-compose.yml`. Contraseñas locales distintas de las de cualquier otro entorno.
-- **Despliegue:** no publican puertos y la opción de hacerlos públicos en la plataforma queda desactivada. Contraseñas generadas aleatoriamente y distintas por entorno. Conexión a PostgreSQL con SSL si la configuración de producción de Medusa lo exige. **[Verificar]**
+- **Despliegue:** no publican puertos y la opción de hacerlos públicos en la plataforma queda desactivada. Contraseñas generadas aleatoriamente y distintas por entorno. Conexión a PostgreSQL con SSL si la configuración de producción de Medusa lo exige. **[Confirmado]** Medusa activa SSL para cualquier host que no sea `localhost` o `127.0.0.1`, salvo que la URL lleve `sslmode=disable`.
 
 **SEC-05 · Contenedores.** [Despliegue]
 - Imágenes con usuario sin privilegios (no root).
@@ -136,7 +136,7 @@ Si se usa un túnel para probar Mercado Pago con URL pública (`arquitectura.md`
 - `STORE_CORS`, `ADMIN_CORS` y `AUTH_CORS` con los orígenes exactos de cada entorno: `localhost` con sus puertos en local, dominios exactos al desplegar. Nunca comodines.
 
 **SEC-17 · Límite de solicitudes.** [Local y despliegue]
-Medusa no incluye un limitador de solicitudes de fábrica **[Verificar]**. Se implementa en la aplicación con un middleware propio, de modo que se pueda probar en local. Al desplegar se puede sumar un límite adicional en el proxy. Valores iniciales:
+Medusa no incluye un limitador de solicitudes de fábrica **[Confirmado]**. Se implementa en la aplicación con un middleware propio, de modo que se pueda probar en local. Al desplegar se puede sumar un límite adicional en el proxy. Valores iniciales:
 
 | Ruta | Límite inicial |
 |---|---|
@@ -152,11 +152,11 @@ Medusa no incluye un limitador de solicitudes de fábrica **[Verificar]**. Se im
 - Cuentas individuales. Nunca cuentas compartidas ni credenciales por defecto.
 - Contraseñas de al menos 12 caracteres.
 - Los intentos de login quedan limitados por SEC-17.
-- Bloqueo por intentos fallidos y doble factor quedan para el MVP1, salvo que Medusa los traiga de fábrica **[Verificar]**.
+- Bloqueo por intentos fallidos y doble factor quedan para el MVP1. **[Confirmado]** Medusa no los trae de fábrica.
 
 **SEC-21 · Roles con permisos mínimos.** [Local y despliegue]
-- Medusa incorporó funciones de roles y políticas (RBAC) en versiones recientes. **[Verificar]** si están disponibles en la versión de código abierto 2.22 y cómo se habilitan.
-- Si están disponibles, se usan. Si no, se implementa un guard propio que **deniega por defecto** cualquier ruta de `/admin/*` no incluida en la lista del rol vendedor.
+- **[Confirmado]** el módulo de roles y políticas (RBAC) de Medusa 2.22 está desactivado por defecto y requiere una licencia. No se usa.
+- Se implementa un guard propio que **deniega por defecto** cualquier ruta de `/admin/*` no incluida en la lista del rol vendedor.
 - Cada ruta del admin tiene una prueba automatizada que verifica el acceso de cada rol.
 - El rol vendedor se crea y se restringe en el mismo sprint. Nunca existe un vendedor sin restricciones.
 
@@ -165,8 +165,8 @@ Medusa no incluye un limitador de solicitudes de fábrica **[Verificar]**. Se im
 - Solo el superadmin modifica regiones, impuestos, proveedores de pago y claves de API.
 
 **SEC-23 · Sesiones.** [Local y despliegue]
-- Vencimiento de sesión de admin definido y razonable (por ejemplo, 12 horas).
-- Cookies de sesión con `HttpOnly` y `SameSite`. El atributo `Secure` se exige al desplegar con HTTPS, y en local se desactiva por configuración. **[Verificar]** el mecanismo exacto de Medusa 2.22.
+- Vencimiento de sesión de admin definido y razonable. **[Confirmado]** el valor por defecto de Medusa es 10 horas (`sessionOptions.ttl`).
+- **[Confirmado]** cookie de sesión `connect.sid`, `HttpOnly`. En `production` y `staging` Medusa la fija `Secure` y `SameSite=Lax`; en desarrollo no, que es lo esperado en local sin HTTPS.
 
 **SEC-24 · Acceso del cliente a su pedido.** [Local y despliegue]
 - El enlace del email incluye un token aleatorio de al menos 32 bytes, propio de cada pedido.
@@ -356,3 +356,4 @@ Un plugin de Medusa corre con todos los permisos del backend. Antes de adoptar c
 |---|---|---|
 | 2026-10-23 | 1 | Primera versión: modelo de amenazas, controles por capa, hallazgos y checklist de lanzamiento. |
 | 2026-10-23 | 2 | Alcance reducido a desarrollo local. Cada control indica su etapa (local, despliegue o ambas). Nuevos controles SEC-06 (máquina de desarrollo) y SEC-07 (túnel temporal). Comprobantes con driver local y encabezados contra ejecución en el panel. Corrección de la VPN de SEC-02. Hallazgos H-12 a H-18 y checklist dividido en local y despliegue. |
+| 2026-10-23 | 2.1 | Resultado de SP-01: puntos **[Verificar]** resueltos con evidencia en `sp-01-medusa.md`. |

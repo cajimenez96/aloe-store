@@ -1,6 +1,6 @@
 # Planificación del MVP0: Tienda online + punto de venta
 
-**Versión:** 3
+**Versión:** 3.1
 **Estado:** borrador para revisión
 **Última actualización:** 2026-10-23
 **Alcance actual:** desarrollo local. No hay despliegue en ninguna plataforma. El trabajo de despliegue está descrito en la épica E13 y en la sección 10, y no tiene sprint asignado.
@@ -834,7 +834,7 @@ No bloquean el MVP0.
 
 - IDs estables: `HU-XX`, `TEC-XX`, `SP-XX`, `BUG-XX`. El número no cambia con la prioridad.
 - Ramas: `feature/HU-XX-descripcion`, `fix/BUG-XX-descripcion`.
-- Commits: `HU-XX: descripción en español`.
+- Commits: conventional commits con el detalle en español, por ejemplo `feat: se agrega filtro por subcategoría`. El ID de la historia va en la rama y en el título del pull request, no en el commit.
 - Pull requests (cuando exista un repositorio remoto): título con el ID y enlace al ticket.
 
 ## 15. Historial de cambios
@@ -844,3 +844,4 @@ No bloquean el MVP0.
 | 2026-10-23 | 1 | Primera versión. |
 | 2026-10-23 | 2 | Backlog rehecho sobre lo nativo de Medusa: 50 historias, 2 tareas técnicas y 2 spikes (225 puntos). Se agregan configuración base, endurecimiento del servidor, épica de seguridad, monitoreo y lanzamiento. Se eliminan la máquina de estados propia, la entidad de pagos por transferencia, el bloqueo de cuentas y la revocación de tokens. Roles junto con la creación de usuarios, emails antes de las historias que los usan y nueva Definition of Done previa al lanzamiento. Todo en Coolify. |
 | 2026-10-23 | 3 | Alcance reducido a desarrollo local, sin despliegue en ninguna plataforma. El trabajo de servidor, staging, almacenamiento externo, email real, dominio, respaldos, monitoreo y lanzamiento pasa a la épica E13, sin sprint. Nuevos tickets TEC-03 a TEC-07 y HU-51 a HU-53. Mercado Pago se prueba en local con simulador de notificaciones y conciliación (SP-02 adelantado a S0, HU-26 a S4). Notificaciones locales (TEC-02 a S2). Definition of Done con criterio de portabilidad. Plan de 209 puntos. |
+| 2026-10-23 | 3.1 | Convención de commits: conventional commits con el detalle en español. |

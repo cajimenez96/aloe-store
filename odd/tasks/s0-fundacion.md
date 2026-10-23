@@ -1,56 +1,55 @@
-# Sprint 0 - Fundacion (Aloe)
+# Sprint 0 - Fundacion local (Aloe)
 
-Objective: entorno local reproducible, CI y verificacion tecnica de Medusa 2.22 (HU-02 y HU-03 diferidas: aun no hay VPS ni Coolify).
-Branch: main (sin remoto aun) | Delivery: ask-on-risk | Runner: jest (backend, `pnpm --filter @aloe/backend run test:unit`), lint `pnpm lint`
-Source of truth: `docs/planning.md` v2 (HU-01, HU-02, HU-03, HU-05, TEC-01, SP-01), `docs/arquitectura.md` v2.1 y `docs/seguridad.md`.
+Objective: entorno local reproducible, verificaciones automaticas, verificacion tecnica de Medusa y decision sobre Mercado Pago. Alcance: solo desarrollo local (docs v3).
+Branch: main | Remote: origin (https://github.com/cajimenez96/aloe-store.git) agregado, SIN push hasta que el usuario certifique la conformidad con los docs | Runner: jest (backend, `npm run test:unit --workspace @aloe/backend`), `npm run check`
+Source of truth: `docs/planning.md` v3 (S0 = HU-01, HU-05, TEC-01, SP-01, SP-02; 19 puntos), `docs/arquitectura.md` 3.1, `docs/seguridad.md` 2.1, `docs/producto.md` 3.
 
 ## Specs
 
-S1 (HU-01) Como desarrollador, quiero levantar todo el sistema en local con un comando, para trabajar en un entorno igual al de los servidores.
-- S1.1 `docker compose up` levanta PostgreSQL, Redis, Medusa servidor, Medusa worker y storefront en una máquina limpia.
-- S1.2 PostgreSQL y Redis tienen healthchecks y los demás servicios esperan a que estén listos.
-- S1.3 Existen `.env.example` del backend y del storefront con todas las variables de `arquitectura.md`, sección 17.5, sin valores reales.
-- S1.4 El README explica cómo levantar, detener, reiniciar desde cero y crear el primer usuario.
+S1 (HU-01) Como desarrollador, quiero levantar todo el sistema en mi computadora con pocos comandos, para trabajar sin depender de ningun servicio externo.
+- S1.1 `docker compose up -d` levanta PostgreSQL y Redis con healthchecks, publicados solo en `127.0.0.1` (SEC-04).
+- S1.2 Backend (`:9000`) y storefront (`:3000`) se levantan con un comando, con recarga automatica, y escuchan solo en localhost (SEC-06). [Verificar] la opcion en cada uno.
+- S1.3 Existen `.env.example` del backend y del storefront con todas las variables de `arquitectura.md`, seccion 17.5, sin valores reales, y `.gitignore` excluye `.env*`, `static/` y `storage/`.
+- S1.4 El README explica los requisitos (Node.js 22.22 o superior y Docker), como levantar, detener y reiniciar desde cero (`docker compose down -v`) y como crear el primer usuario administrador.
+- S1.5 Una persona que no participo en la configuracion logra levantar el sistema siguiendo solo el README.
 
-S2 (HU-02) Servidor y Coolify endurecidos (SEC-01, SEC-02, SEC-03). DIFERIDA: requiere VPS y autorizacion expresa del usuario para operar remoto.
+S2 (HU-05) Imagenes de producto en local.
+- S2.1 Las imagenes subidas desde el panel se guardan con el proveedor local de Medusa y se ven en el storefront.
+- S2.2 Un archivo de mas de 5 MB, de un formato distinto de JPG, PNG o WebP, o cuyo contenido real no coincide con su extension, se rechaza con un mensaje claro (SEC-50).
+- S2.3 Ningun archivo privado se guarda en `static/`, que es una carpeta publica.
+- S2.4 La URL base de las imagenes sale de `MEDUSA_BACKEND_URL`.
 
-S3 (HU-03) Staging en Coolify. DIFERIDA por la misma razon.
+S3 (TEC-01) Verificaciones automaticas locales.
+- S3.1 `npm run check` ejecuta lint, tipos, pruebas, build y auditoria de dependencias del backend y del storefront (SEC-80).
+- S3.2 La auditoria falla ante vulnerabilidades criticas.
+- S3.3 Un hook de pre-push ejecuta las verificaciones rapidas y bloquea el push si fallan.
+- S3.4 Un hook de pre-commit bloquea archivos `.env` y patrones de claves (SEC-10).
 
-S4 (HU-05) Imágenes de producto en R2.
-- S4.1 Las imágenes subidas desde el panel quedan en R2 y su URL usa el dominio `S3_FILE_URL`.
-- S4.2 Archivos de más de 5 MB o de formato no permitido se rechazan con un mensaje claro (SEC-50).
-- S4.3 El bucket no permite listar su contenido (SEC-52).
-- Bloqueada: faltan credenciales y bucket de R2 y el dominio de imagenes.
+S4 (SP-01) Verificacion tecnica de Medusa 2.22: documento con la respuesta a cada punto [Verificar] (incluye modo compartido, validacion de archivos, escuchar solo en localhost, primer usuario e imagenes de `localhost` con `next/image`) y `arquitectura.md` actualizado con las respuestas.
 
-S5 (TEC-01) Como equipo, quiero que cada cambio pase por lint, pruebas, build y auditoría de dependencias.
-- S5.1 Cada pull request ejecuta lint, pruebas y build de backend y storefront.
-- S5.2 La auditoría de dependencias bloquea el merge si hay vulnerabilidades críticas (SEC-80).
-- S5.3 Las actualizaciones de dependencias se proponen de forma automática.
-- S5.4 Un pull request con fallos no puede integrarse.
+S5 (SP-02) Mercado Pago: integracion, pedido y pruebas en local. Prerrequisito del usuario: aplicacion de prueba y cuentas de prueba de vendedor y comprador en Mercado Pago Developers. NO iniciado.
 
-S6 (SP-01) Verificación técnica de Medusa 2.22.
-- S6.1 Documento con la respuesta a cada punto [Verificar] de `arquitectura.md` y `seguridad.md`, con la fuente consultada.
-- S6.2 Incluye como mínimo: roles nativos (RBAC) en la versión de código abierto, `metadata` en valores de opción, visibilidad de la `metadata` de `Store` y de pedidos en la API de tienda, convención de montos, estado del pago con el proveedor manual, recálculo de la sesión de pago al cambiar promociones, liberación de reservas al cancelar, pedidos borrador para el punto de venta, modo servidor y worker, mecanismo de sesión del panel, precios con impuestos incluidos y límite de solicitudes nativo.
-- S6.3 `arquitectura.md` actualizado con las respuestas.
-
-Decisiones del usuario: commits convencionales con detalle en español, sin ID de historia ni atribución; Coolify más adelante; storefront desde cero según arquitectura v2 (se eliminó la starter).
+Decisiones del usuario: commits convencionales con detalle en espanol, sin ID de historia ni atribucion; el despliegue (Coolify, R2, email real, dominio, CI) queda fuera del MVP0; storefront desde cero.
 
 ## Tasks
 
-- T1 | S1 | inline | [x] | compose con servidor, worker y storefront (5 servicios), Dockerfiles dev/prod no root, .env.example por app, README | commits: 4215309, 607b928. Evidencia: `down -v --remove-orphans` + `up -d --build` desde cero: postgres, redis, medusa-server y storefront healthy, worker Up con admin desactivado (/app 404) y sin migrar; /health 200, /app 200, storefront 200. Imágenes prod de backend y storefront corren como usuario `node` y responden 200. FALTA: `apps/storefront/.env.example` (la ruta está denegada en los permisos del entorno; contenido propuesto en el reporte).
-- T2 | S6 | inline | [x] | `docs/sp-01-medusa.md` + arquitectura.md 2.1 (12 puntos con prueba real, código instalado y docs). Pendiente aceptación del PO | commit: ver git log (docs: resultado de SP-01)
-- T3 | S5 | inline | [~] | `.github/workflows/ci.yml` (backend, storefront, audit, imágenes prod en main) + `.github/dependabot.yml`. Cada paso corrido en local con exit 0 (lint, test:unit, build, audit crítico). PENDIENTE: correr en GitHub (no hay remoto) y activar protección de rama exigiendo los jobs backend, storefront y audit (S5.4) | commits: d1fcd22, ccae5c0
-- T4 | S4 | inline | [ ] | file-s3 contra R2 | bloqueada por credenciales
-- T5 | S2, S3 | - | [ ] | diferidas (Coolify)
+- T1 | S1 | inline | [x*] | npm workspaces, compose solo PostgreSQL+Redis en 127.0.0.1, backend y storefront en la maquina con `--host 127.0.0.1`, README, .gitignore | Evidencia: `docker ps` muestra 127.0.0.1:<puerto>; backend y storefront escuchan en 127.0.0.1 y rechazan la IP de la LAN (curl 000); migraciones + primer usuario OK. *PENDIENTE: `.env.example` de backend y storefront segun v3 17.5: los permisos del entorno deniegan escribir esas rutas (el de backend sigue con variables de la v2). Contenido en README. S1.5 (persona externa) no verificado.
+- T2 | S3 | inline | [x] | `scripts/check.sh`, `.githooks/pre-commit`, `.githooks/pre-push`, `npm run check` / `check:fast` | Evidencia: `npm run check` exit 0 (lint, tipos, pruebas, auditoria critica, build). Pre-commit probado con indice: bloquea `.env` y token `APP_USR-`. Pre-push no ejecutado en un push real.
+- T3 | S4 | inline | [x] | `docs/sp-01-medusa.md` (17 puntos) + `arquitectura.md` 3.1 + `seguridad.md` 2.1. Pendiente aceptacion del PO.
+- T4 | S2 | inline | [ ] | HU-05: middleware de validacion de subida (tamano, tipo por contenido) y `backend_url` del modulo de archivos desde `MEDUSA_BACKEND_URL`, mas `next/image` para localhost | hallazgos en sp-01 puntos 13, 16 y 17
+- T5 | S5 | - | [ ] | SP-02 | bloqueada: falta la app de prueba de Mercado Pago
 
 ## Log
 
 L1 (2026-10-23, usuario): "Si, me parece perfecto. Ahora que entendemos de que va el producto, podemos comenzar a desarrollar siguiendo @docs/planning.md"
 L2 (2026-10-23, usuario): "Utilicemos conventional commits pero el detalle debe ser en español, por ejemplo: 'feat: se agrega filtro...'"
 L3 (2026-10-23, usuario): "De momento no tengo coolify, la idea es aplicarlo luego"
-L4: Scaffold inicial con create-medusa-app (Medusa 2.22.0). Puertos del host ocupados por otros contenedores del usuario: 5433, 6379, 9000. Se usan 5434 (postgres), 6380 (redis), 9100 (backend).
-L5: Causa raíz del fallo de migraciones en Docker: Medusa (`loadDatabaseConfig`) fuerza SSL si el host de DATABASE_URL no es localhost/127.0.0.1 ni trae sslmode=disable; el Postgres del contenedor no tiene SSL y knex falla en silencio. Solución: `?sslmode=disable` en la URL de compose.
-L6: El seed inicial de la starter (`src/migration-scripts/initial-data-seed.ts`) crea datos demo (región Europa, EUR, canal "Default Sales Channel", clave publicable, 4 productos) y corre al migrar también en producción. HU-04 (S1) debe reemplazarlo por la configuración de Argentina.
-L7 (2026-10-23, usuario): "hicimos una actualizacion en la documentacion, por favor revisala nuevamente y continuemos con esto". Docs pasan a v2: nueva numeración (SP-01 es la verificación técnica, SP-02 es Mercado Pago, HU-05 imágenes, HU-03 staging), nuevo `seguridad.md`, storefront desde cero, compose con servidor+worker+storefront, TEC-01 con auditoría y actualizaciones automáticas. Se reajustó S0 a esta versión.
-L8: Auditoría de dependencias: había 1 vulnerabilidad crítica (`proxy-addr`, vía `@medusajs/test-utils`). Resuelta con `pnpm.overrides`. Quedan 16 altas y 11 moderadas, informativas.
-L9: Inconsistencia de docs: `planning.md` sección 13 sigue pidiendo commits `HU-XX: descripción`, que contradice la decisión L2 del usuario. Se mantiene L2. Pendiente que el usuario actualice la sección 13.
+L4 (2026-10-23, usuario): "Antes de hacer un push revisa nuevamente los documentos, hicimos una v3. Una vez que leamos todos los documentos y certifiquemos que vamos acorde a lo que estos documentos dicen podemos hacer push"
+L5 (2026-10-23, usuario): "si, apliquemos las correcciones" (autoriza borrar CI, Dockerfiles y archivos de pnpm de mis propios commits).
+L6: Causa raiz historica del fallo de migraciones en Docker: Medusa fuerza SSL si el host no es localhost/127.0.0.1 ni trae sslmode=disable. Con la v3 (host 127.0.0.1) ya no aplica.
+L7: Puertos del usuario ocupados por otros contenedores: 9000 (mandix-minio), 9001 (consola de minio), 6379 (az-chatbot-redis), 5433. Mi entorno usa los puertos del documento por defecto y variables de shell para desviar: REDIS_PORT=6380 (compose), PORT=9100 (backend). No se crearon archivos .env.
+L8: El seed inicial de la starter (`src/migration-scripts/initial-data-seed.ts`) crea datos demo (region Europa, EUR, 4 productos). HU-04 (S1) lo reemplaza por la configuracion de Argentina con `scripts/setup-store.ts`.
+L9: Docs v3 sobrescribieron las respuestas de SP-01 en arquitectura.md; se reaplicaron en 3.1 y se agregaron a seguridad.md 2.1.
+L10: planning.md seccion 14 vuelve a decir commits `HU-XX: descripcion`, que contradice L2. Se mantiene L2; pendiente que el usuario actualice el documento.
+L11: Auditoria: con npm hay 83 vulnerabilidades (74 altas, 9 moderadas), ninguna critica; la instalacion con pnpm tenia 30. Informativas.
+L12: Se eliminaron del MVP0 (siguen en el historial de Git): `.github/` (CI y Dependabot, TEC-06 es de despliegue), Dockerfiles de backend y storefront (TEC-03), servicios medusa-server, medusa-worker y storefront del compose.

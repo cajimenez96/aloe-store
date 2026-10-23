@@ -1,6 +1,6 @@
 # Arquitectura técnica: Tienda online + punto de venta (MVP0)
 
-**Versión:** 3
+**Versión:** 3.1
 **Estado:** borrador para revisión
 **Última actualización:** 2026-10-23
 **Alcance actual:** desarrollo local. No hay despliegue en ningún servidor ni plataforma. La sección 21 describe cómo se prepara el código para desplegarlo más adelante.
@@ -9,7 +9,7 @@
 > **Convenciones de este documento**
 > - **[Medusa]**: viene de la plataforma, se usa sin modificaciones.
 > - **[Propio]**: lo desarrollamos con las extensiones oficiales de Medusa.
-> - **[Verificar]**: debe confirmarse contra la documentación y el código de la versión instalada antes de implementar. Todos los puntos marcados así forman parte del spike SP-01 de `planning.md`.
+> - **[Verificar]**: debe confirmarse contra la documentación y el código de la versión instalada antes de implementar. Los puntos de SP-01 están resueltos y se marcan **[Confirmado]**, con la evidencia en `sp-01-medusa.md`. Los que siguen con **[Verificar]** se resuelven en la historia indicada.
 > - **[Local]** y **[Despliegue]**: indican en qué etapa aplica un elemento. Lo que no lleva marca aplica en ambas.
 
 ---
@@ -75,8 +75,8 @@
 
 - Nada privado se guarda jamás en `static/`, porque Medusa expone esa carpeta públicamente.
 - PostgreSQL y Redis se publican solo en `127.0.0.1`, para que nadie en la red local pueda llegar a ellos.
-- Backend y storefront deben escuchar solo en localhost. **[Verificar]** la variable o la opción que lo controla en Medusa y en Next.js.
-- En local, Medusa corre en un solo proceso que atiende solicitudes y también ejecuta jobs y suscriptores (modo compartido). **[Verificar]** que ese sea el valor por defecto y su nombre exacto. La separación en servidor y worker se prueba antes de desplegar (sección 21).
+- Backend y storefront deben escuchar solo en localhost. **[Confirmado]** `medusa develop --host 127.0.0.1` y `next dev -H 127.0.0.1`: se comprobó que escuchan en `127.0.0.1` y no responden por la IP de la red local.
+- En local, Medusa corre en un solo proceso que atiende solicitudes y también ejecuta jobs y suscriptores (modo compartido). **[Confirmado]** es el valor por defecto de `workerMode` (`shared`), sin configurar nada. Con `server` y `worker` la variable es `MEDUSA_WORKER_MODE`. La separación se prueba antes de desplegar (sección 21).
 
 ## 4. Estructura del repositorio
 
@@ -128,7 +128,7 @@ Esta configuración la realiza el superadmin una sola vez por instancia. Se auto
 |---|---|---|
 | Moneda | ARS como moneda por defecto de la tienda | [Medusa] |
 | Región | "Argentina", país AR, moneda ARS | [Medusa] |
-| Impuestos | Precios con impuestos incluidos. La alícuota depende de la condición fiscal del cliente (pendiente). | [Medusa] **[Verificar]** opción de precios con impuestos incluidos |
+| Impuestos | Precios con impuestos incluidos. La alícuota depende de la condición fiscal del cliente (pendiente). | [Medusa] **[Confirmado]** con las preferencias de precio (`/admin/price-preferences`) de la moneda `ars` y de la región, en `is_tax_inclusive: true`. Por defecto vienen en `false`. |
 | Canales de venta | "Web" y "Local" | [Medusa] |
 | Clave publicable | Una clave asociada al canal "Web", usada por el storefront | [Medusa] |
 | Ubicación de stock | "Local", asociada a ambos canales | [Medusa] |
@@ -154,7 +154,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 - El **porcentaje de descuento por transferencia** vive solo en la promoción de Medusa.
 - El **costo de envío** vive solo en la opción de envío de Medusa.
 
-**[Verificar]** que la `metadata` de `Store` no se exponga en la API de tienda. Si se expone, `transfer_promotion_code` debe moverse a una variable de entorno.
+**[Confirmado]** la API de tienda no expone `Store` ni su `metadata` (no existe `/store/stores`). `transfer_promotion_code` puede quedar ahí.
 
 ## 7. Modelo de datos
 
@@ -163,7 +163,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 | Entidad | Uso |
 |---|---|
 | `Product`, `ProductOption`, `ProductOptionValue`, `ProductVariant` | Catálogo, talles, colores y variantes. Las opciones se definen por producto. |
-| `ProductCategory` | Jerarquía de tres niveles. Desactivación con el campo nativo de categoría activa. **[Verificar]** nombre del campo. |
+| `ProductCategory` | Jerarquía de tres niveles. Desactivación con el campo nativo `is_active`. **[Confirmado]** su valor por defecto es `false`: una categoría nueva no se ve en la tienda hasta activarla. |
 | `Price` | Precio de lista por variante. |
 | `InventoryItem`, `InventoryLevel`, `ReservationItem` | Stock y reservas. |
 | `SalesChannel` | "Web" y "Local". |
@@ -175,7 +175,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 
 ### 7.2 Datos propios
 
-**Muestra de color.** Se guarda en la `metadata` del valor de opción de color: `{ "hex": "#RRGGBB" }`. **[Verificar]** que `ProductOptionValue` admita `metadata` editable. Si no la admite, se crea un módulo con un vínculo a `ProductOptionValue`.
+**Muestra de color.** Se guarda en la `metadata` del valor de opción de color: `{ "hex": "#RRGGBB" }`. **[Verificar en HU-09]** `ProductOptionValue` tiene el campo `metadata`, pero la ruta `POST /admin/product-options/:id` no lo acepta (`sp-01-medusa.md`, punto 2). Salvo que HU-09 encuentre otra ruta que lo escriba, se crea un módulo con un vínculo a `ProductOptionValue`.
 
 **Acceso del cliente al pedido.** Se guarda en la `metadata` del pedido:
 
@@ -184,7 +184,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 | `access_token_hash` | Hash SHA-256 del token. El token nunca se guarda. |
 | `access_token_expires_at` | Vencimiento del token. Se fija cuando el pedido se cierra. |
 
-**[Verificar]** que la `metadata` del pedido no se devuelva en respuestas públicas. Aunque solo contiene un hash, conviene no exponerla.
+**[Confirmado]** `GET /store/orders/:id` no devuelve la `metadata` del pedido, ni siquiera con `fields=metadata`. Esa ruta nativa **no tiene autenticación** y expone email, totales y dirección del cliente, así que la tienda no la usa y un middleware la bloquea con 404 (sección 13.3, HU-23).
 
 **Comprobante de transferencia.** Módulo propio `transfer-proof`, vinculado a `Order`.
 
@@ -219,7 +219,7 @@ No hay una máquina de estados propia. Los estados del negocio (`producto.md`, s
 | Cancelado | cancelado | cancelado | cualquiera |
 | Reembolsado | cualquiera | reembolsado total o parcial | cualquiera |
 
-**[Verificar]** los nombres exactos de los estados de pedido y de pago en Medusa 2.22, y en qué estado queda el pago con el proveedor manual al completar el carrito.
+**[Confirmado]** al completar el carrito con el proveedor manual, el pedido queda `pending` y el pago `authorized`. Al cancelar, ambos pasan a `canceled`. Una captura deja el pago en `captured`.
 
 ## 9. Descuento por transferencia
 
@@ -238,8 +238,9 @@ Las promociones automáticas se aplican cuando el carrito cumple sus condiciones
 
 ### 9.3 Pendiente de verificación
 
-- **[Verificar]** que al aplicar o quitar la promoción se recalcule el total de la colección de pago, o reiniciar la sesión de pago de forma explícita.
-- **[Verificar]** que el hook del flujo de completar carrito permita leer la sesión de pago elegida.
+- **[Confirmado]** al aplicar o quitar la promoción, Medusa sincroniza el monto de la colección de pago y borra sus sesiones. La ruta propia crea una sesión nueva después de cambiar la promoción.
+- **[Confirmado]** quitar una promoción es `DELETE /store/carts/:id/promotions` con `promo_codes` en el cuerpo.
+- **[Verificar en HU-22]** que el hook `validate` de `completeCartWorkflow` permita leer la sesión de pago elegida. El hook existe.
 
 ## 10. Pago con tarjeta (Mercado Pago)
 
@@ -301,7 +302,7 @@ Un túnel temporal que exponga el backend local con un nombre público y HTTPS, 
 5. El admin revisa el comprobante en una extensión del panel:
    - **Aceptar:** el comprobante pasa a `accepted` y se captura el pago con el flujo nativo de Medusa.
    - **Rechazar:** el comprobante pasa a `rejected` con motivo. El pedido sigue pendiente.
-6. Un job cancela los pedidos por transferencia sin comprobante aceptado después de `transfer_reservation_hours`, usando la cancelación nativa. **[Verificar]** que la cancelación nativa libere las reservas de stock.
+6. Un job cancela los pedidos por transferencia sin comprobante aceptado después de `transfer_reservation_hours`, usando la cancelación nativa. **[Confirmado]** la cancelación nativa libera las reservas de stock.
 
 Un pedido con un comprobante en revisión no se cancela por vencimiento hasta que el admin lo revise.
 
@@ -309,7 +310,8 @@ Un pedido con un comprobante en revisión no se cancela por vencimiento hasta qu
 
 - Es una **ruta propia dentro del panel de Medusa**, construida con Medusa Admin SDK y Medusa UI. No usa shadcn ni el storefront.
 - Cada venta se crea en el canal "Local", con el proveedor manual y el pago capturado en el mismo paso.
-- **[Verificar]** si los pedidos borrador (`draft orders`) de Medusa sirven como base. Si no, la ruta propia ejecuta los workflows nativos de creación de pedido.
+- **[Confirmado]** los pedidos borrador sirven como base: borrador, conversión a pedido, colección de pago y `mark-as-paid` dejan el pago `captured` (`sp-01-medusa.md`, punto 8).
+- **[Verificar en HU-34]** el stock físico no baja al cobrar, solo queda reservado. La venta del local debe además registrar el despacho para descontarlo.
 - El reporte de ventas del día filtra pedidos por canal "Local" y fecha.
 
 ## 13. Endpoints
@@ -320,11 +322,11 @@ Un pedido con un comprobante en revisión no se cancela por vencimiento hasta qu
 - **Admin:** sesión o token de usuario autenticado.
 - **Cliente invitado:** token de acceso al pedido en el header `x-order-token`.
 - Formato JSON, fechas ISO 8601 en UTC.
-- **[Verificar]** si Medusa 2.22 expresa los montos en unidades de la moneda o en centavos.
+- **[Confirmado]** los montos están en la unidad de la moneda (1500 es 1500 pesos), no en centavos.
 
 ### 13.2 Endpoints nativos usados [Medusa]
 
-Los nombres siguen la API de Medusa 2.x. **Todos se verifican en SP-01** contra la versión instalada.
+**[Confirmado]** todas estas rutas existen en Medusa 2.22 (`sp-01-medusa.md`). `GET /store/orders/:id` también existe, pero no está en esta lista a propósito: no tiene autenticación y se bloquea.
 
 **Tienda**
 
@@ -552,15 +554,15 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 
 | Quién | Mecanismo | Detalle |
 |---|---|---|
-| Superadmin, admin y vendedor | Usuario y contraseña de Medusa | Sesión del panel. **[Verificar]** si 2.22 usa cookie de sesión, JWT o ambos, y su vencimiento. |
+| Superadmin, admin y vendedor | Usuario y contraseña de Medusa | **[Confirmado]** el login devuelve un JWT y `POST /auth/session` crea una sesión por cookie `HttpOnly` de 10 horas por defecto. En `production` y `staging` es `Secure` y `SameSite=Lax`; en desarrollo no. |
 | Storefront | Clave publicable del canal "Web" | Identifica la tienda. Es pública y no da acceso a datos privados. |
 | Cliente comprando | Sin cuenta | El identificador del carrito vive en una cookie `HttpOnly` del storefront. |
 | Cliente consultando su pedido | Token de acceso al pedido | Ver `seguridad.md`, SEC-24. |
 
 ### 16.2 Roles
 
-- **Opción preferida:** usar los roles y políticas nativos de Medusa. Las notas de versión recientes muestran trabajo en roles, políticas y superadmin dentro de Medusa. **[Verificar]** si está disponible en la versión de código abierto 2.22, si requiere un flag y cómo se configura.
-- **Alternativa:** guard propio sobre `/admin/*` con lista de rutas permitidas para el vendedor y **denegación por defecto**.
+- **[Confirmado]** los roles y políticas nativos (`@medusajs/rbac`) son un módulo con licencia y están desactivados por defecto. No se usan en el MVP0.
+- **Decisión:** guard propio sobre `/admin/*` con lista de rutas permitidas para el vendedor y **denegación por defecto**.
 - En ambos casos, cada ruta del admin tiene una prueba automatizada por rol.
 - **Limitación conocida:** el menú del panel puede mostrar secciones que el usuario no puede usar. Se documenta para el dueño y se evalúa ocultarlas con extensiones del panel.
 
@@ -577,8 +579,9 @@ Los datos de desarrollo son descartables y **nunca incluyen datos reales de clie
 - Se usa el proveedor local de Medusa, que viene registrado por defecto. Guarda los archivos en `apps/backend/static/` y los sirve de forma pública.
 - La URL base se toma de `MEDUSA_BACKEND_URL`.
 - Regla: **nada privado se guarda en `static/`**.
-- Se validan formato (JPG, PNG o WebP), contenido real del archivo y tamaño máximo de 5 MB (SEC-50). **[Verificar]** si Medusa ofrece esta validación o si hace falta un middleware propio.
-- El storefront usa `next/image`. **[Verificar]** cómo servir imágenes desde `localhost` con `next/image` en Next.js 16.4.3, que podría exigir una configuración específica.
+- Se validan formato (JPG, PNG o WebP), contenido real del archivo y tamaño máximo de 5 MB (SEC-50). **[Confirmado]** Medusa no valida nada al subir: aceptó un texto con extensión `.png`, un HTML, un `.exe` y un archivo de 6 MB. Hace falta un middleware propio (HU-05).
+- **[Confirmado]** el proveedor local arma las URLs con su propia opción `backend_url` (por defecto `http://localhost:9000`) y **no** lee `MEDUSA_BACKEND_URL`. Hay que configurarla en `medusa-config.ts` (HU-05).
+- El storefront usa `next/image`. **[Confirmado]** Next.js 16.4.3 rechaza optimizar imágenes de `localhost` (error "resolved to private IP"). Se resuelve con `images.dangerouslyAllowLocalIP: true` acotado a desarrollo, más `remotePatterns` con el host y la ruta `/static/**` tomados de `NEXT_PUBLIC_IMAGES_HOST`. Nunca se activa en producción (HU-05, HU-12).
 - Las URLs guardadas en local (`http://localhost:9000/static/...`) no sirven fuera de la máquina. Por eso el catálogo de prueba no se promueve a un entorno desplegado (sección 20.4).
 
 ### 17.3 Comprobantes [Propio]
@@ -714,7 +717,7 @@ docker compose down -v      # destruye los datos y reinicia desde cero
 
 ### 20.5 Primer usuario
 
-Se crea con la CLI de Medusa. **[Verificar]** el comando exacto. No hay credenciales por defecto compartidas.
+Se crea con la CLI de Medusa. **[Confirmado]** `npx -w @aloe/backend medusa user -e <email> -p <contraseña>`. No hay credenciales por defecto compartidas.
 
 ### 20.6 Secretos locales
 
@@ -816,7 +819,7 @@ El modelo de amenazas, los controles y los checklists están en `seguridad.md`. 
 | Plugin de Mercado Pago o proveedor propio | Abierto | SP-02 |
 | Momento de creación del pedido con Mercado Pago | Recomendación: opción A | SP-02 |
 | URLs de retorno en local y túnel temporal | Abierto | SP-02 |
-| Roles nativos de Medusa o guard propio | Abierto | SP-01 |
+| Roles nativos de Medusa o guard propio | **Cerrado:** guard propio | SP-01 |
 | Condición fiscal y configuración de impuestos | Abierto | Dueño del comercio, antes de S1 |
 | Plataforma de despliegue | Previsto Coolify, a reconfirmar | Etapa de despliegue |
 | Almacenamiento externo | Abierto | Etapa de despliegue |
@@ -833,3 +836,4 @@ El modelo de amenazas, los controles y los checklists están en `seguridad.md`. 
 | 2026-10-23 | 1.1 | Stack del storefront, R2, comprobantes privados y Coolify. |
 | 2026-10-23 | 2 | Revisión completa: transferencias sobre el proveedor manual, estados derivados de Medusa, configuración en `store.metadata`, descuento con código interno y una sola fuente, configuración base de Medusa, storefront y punto de venta redefinidos, todo en Coolify, endpoints corregidos, variables completas y vínculo con `seguridad.md`. |
 | 2026-10-23 | 3 | Alcance reducido a desarrollo local, sin despliegue en ninguna plataforma. Proveedores locales de archivos y notificaciones, comprobantes con driver local intercambiable, estrategia de pruebas de Mercado Pago sin URL pública, entorno local con Docker Compose, y la etapa de despliegue pasa a ser una sección de preparación. |
+| 2026-10-23 | 3.1 | Resultado de SP-01: puntos **[Verificar]** resueltos con evidencia en `sp-01-medusa.md`. Se documenta que `GET /store/orders/:id` no tiene autenticación, que Medusa no valida archivos al subir y la configuración de `next/image` y de `backend_url` para imágenes locales. |
