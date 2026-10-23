@@ -2,95 +2,102 @@
 
 Tienda online con punto de venta local, sobre Medusa 2.22. Una instancia por cliente.
 
-Documentación: [producto](docs/producto.md), [arquitectura](docs/arquitectura.md), [seguridad](docs/seguridad.md), [planificación](docs/planning.md) y [guía visual](docs/DESIGN.md).
+El MVP0 se desarrolla y se prueba **solo en local**. Documentación: [producto](docs/producto.md), [arquitectura](docs/arquitectura.md), [seguridad](docs/seguridad.md), [planificación](docs/planning.md) y [guía visual](docs/DESIGN.md).
 
 ## Requisitos
 
-- Node.js 22.23.4 (ver `.nvmrc`; Medusa 2.22 admite de 22.22 a 24). Con nvm: `nvm use`.
-- pnpm 10 (`corepack enable` lo activa).
-- Docker con el daemon corriendo.
+- Node.js 22.22 o superior (el proyecto fija 22.23.4 en `.nvmrc`; con nvm: `nvm use`).
+- npm 10 o superior (viene con Node).
+- Docker con Compose.
+- Git.
 
 ## Estructura
 
 ```
 apps/backend      Medusa 2.22 (API, panel y extensiones propias)
 apps/storefront   Next.js 16.4.3 (tienda)
+scripts/          check.sh y, más adelante, setup-store y el simulador de Mercado Pago
+.githooks/        pre-commit (bloquea .env y claves) y pre-push (verificaciones rápidas)
 docs/             Producto, arquitectura, seguridad y planificación
 odd/tasks/        Seguimiento del trabajo por sprint
 ```
 
-## Entorno local con Docker
-
-`docker compose up -d --build` levanta cinco servicios. PostgreSQL y Redis tienen healthcheck y el resto espera a que estén sanos. El servidor de Medusa migra la base y el worker espera a que el servidor esté listo. El código de `apps/backend/src` y `apps/storefront/src` se recarga en caliente.
-
-| Servicio | Puerto en tu máquina | Qué hace |
-|---|---|---|
-| `medusa-server` | 9100 | API, panel (`/app`) y webhooks. `http://localhost:9100/health` |
-| `medusa-worker` | — | Jobs y suscriptores. Sin panel ni puertos. |
-| `storefront` | 8000 | Tienda. `http://localhost:8000` |
-| `postgres` | 5434 | Usuario `aloe`, base `aloe_store`. Solo se publica en desarrollo. |
-| `redis` | 6380 | Solo se publica en desarrollo. |
-
-Los puertos no son los estándar (9000, 5432, 6379) para no chocar con otros servicios locales.
-
-### Levantar
+## Puesta en marcha
 
 ```bash
-docker compose up -d --build
-docker compose ps
-docker compose logs -f medusa-server
+npm install                    # instala todo y activa los hooks de Git
+docker compose up -d --wait    # PostgreSQL y Redis, solo en 127.0.0.1
 ```
 
-Al terminar de arrancar, `docker compose ps` muestra `postgres`, `redis`, `medusa-server` y `storefront` en `healthy` y el worker en `Up`.
-
-### Crear el primer usuario
+Crear `apps/backend/.env` y `apps/storefront/.env.local` con las variables de abajo, y luego:
 
 ```bash
-docker compose exec medusa-server pnpm exec medusa user -e admin@example.com -p <contraseña>
+cd apps/backend && npx medusa db:migrate && cd ../..
+npx --workspace @aloe/backend medusa user -e <email> -p <contraseña>   # primer usuario administrador
+npm run dev                    # backend en :9000 y storefront en :3000
 ```
 
-Luego se entra a `http://localhost:9100/app`. La clave publicable que usa el storefront se crea en el panel (Configuración, Claves de API) y se pasa a Docker con `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` en un archivo `.env` junto al `docker-compose.yml`.
+El panel queda en `http://localhost:9000/app`. Backend y storefront escuchan solo en `127.0.0.1`.
 
 ### Detener y reiniciar
 
 ```bash
-docker compose stop              # detiene sin borrar datos
-docker compose start             # vuelve a levantar con los mismos datos
-docker compose restart medusa-server medusa-worker
+docker compose stop            # detiene PostgreSQL y Redis conservando los datos
+docker compose start
+docker compose down -v         # DESTRUYE los datos y reinicia desde cero
 ```
 
-### Reiniciar desde cero (borra la base y Redis)
+Después de `down -v` hay que volver a migrar y a crear el usuario.
 
-```bash
-docker compose down -v --remove-orphans
-docker compose up -d --build
-```
+### Si un puerto está ocupado
+
+Los puertos por defecto son 9000 (backend), 3000 (storefront), 5432 (PostgreSQL) y 6379 (Redis). Para PostgreSQL y Redis, crear un `.env` en la raíz con `POSTGRES_PORT` y `REDIS_PORT` (no se versiona) y ajustar `DATABASE_URL` y `REDIS_URL` del backend. Para el backend, cambiar `PORT` y las URLs que lo mencionan (`MEDUSA_BACKEND_URL`, `ADMIN_CORS`, `AUTH_CORS`, y `NEXT_PUBLIC_MEDUSA_BACKEND_URL` del storefront).
 
 ## Variables de entorno
 
-Cada app tiene su `.env.example` con las variables de [arquitectura.md](docs/arquitectura.md), sección 17.5. Docker Compose funciona sin ningún `.env`, con valores de desarrollo. Para correr fuera de Docker, copiar `apps/backend/.env.example` a `apps/backend/.env`. Nunca se suben credenciales reales. En el storefront solo pueden tener prefijo `NEXT_PUBLIC_` la URL del backend, la clave publicable y el dominio de imágenes (seguridad.md, SEC-10).
+Los secretos se generan en cada máquina (`openssl rand -hex 32`) y nunca se versionan. Lista completa en [arquitectura.md](docs/arquitectura.md), sección 17.5.
 
-## Desarrollo sin Docker
+**`apps/backend/.env`**
 
-Con PostgreSQL y Redis de Docker arriba (`docker compose up -d postgres redis`):
-
-```bash
-pnpm install
-cd apps/backend && pnpm exec medusa db:migrate
-pnpm backend:dev
-pnpm storefront:dev
+```
+NODE_ENV=development
+LOG_LEVEL=info
+PORT=9000
+MEDUSA_BACKEND_URL=http://localhost:9000
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/medusa_dev
+REDIS_URL=redis://127.0.0.1:6379
+JWT_SECRET=<generado>
+COOKIE_SECRET=<generado>
+STORE_CORS=http://localhost:3000
+ADMIN_CORS=http://localhost:9000
+AUTH_CORS=http://localhost:9000,http://localhost:3000
+PROOFS_STORAGE_DRIVER=local
+PROOFS_LOCAL_DIR=../../storage/private/proofs
+PROOFS_URL_SIGNING_SECRET=<generado>
+MERCADOPAGO_ACCESS_TOKEN=        # solo credenciales de prueba
+MERCADOPAGO_WEBHOOK_SECRET=      # en local, secreto de prueba del simulador
+MP_NOTIFICATION_URL=             # vacío si no hay URL pública
+MP_BACK_URL_BASE=
 ```
 
-## Calidad
+**`apps/storefront/.env.local`**
 
-```bash
-pnpm lint
-pnpm --filter @aloe/backend run test:unit --passWithNoTests
-pnpm build
-pnpm audit --audit-level=critical
+```
+NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://localhost:9000
+NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=
+NEXT_PUBLIC_IMAGES_HOST=localhost:9000
 ```
 
-El CI (`.github/workflows/ci.yml`) corre lo mismo en cada pull request.
+Solo esas tres variables pueden llevar el prefijo `NEXT_PUBLIC_` (seguridad.md, SEC-10).
+
+## Verificaciones
+
+```bash
+npm run check         # lint, tipos, pruebas, auditoría de dependencias y build
+npm run check:fast    # lo mismo sin el build (lo ejecuta el hook de pre-push)
+```
+
+`npm install` activa los hooks de `.githooks/`: el de pre-commit bloquea archivos `.env` y patrones de claves, y el de pre-push corre `npm run check:fast`.
 
 ## Commits
 
