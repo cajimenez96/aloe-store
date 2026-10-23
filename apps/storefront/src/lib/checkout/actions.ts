@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import type { CartActionResult } from "../cart/actions"
 import { cartFetch, readCartId } from "../cart/api"
 import { getShippingChoices } from "./api"
 import { type CheckoutField, parseCheckoutForm } from "./schema"
@@ -83,4 +84,23 @@ export async function saveCheckout(_previous: CheckoutState, formData: FormData)
 
   revalidatePath("/checkout")
   return { saved: true, errors: {}, values, message: null }
+}
+
+/**
+ * Elegir tarjeta o transferencia (planning.md, HU-21). El storefront solo manda
+ * qué medio quiere: la promoción y el total los resuelve el backend (SEC-31).
+ */
+export async function choosePaymentMethod(method: unknown): Promise<CartActionResult> {
+  if (method !== "card" && method !== "transfer") {
+    return { ok: false, error: { code: "CART_ERROR", message: "Elegí tarjeta o transferencia." } }
+  }
+  const cartId = await readCartId()
+  if (!cartId) return { ok: false, error: { code: "CART_ERROR", message: "Tu carrito está vacío." } }
+
+  const result = await cartFetch(`/store/checkout/${cartId}/payment-method`, {
+    method: "POST",
+    body: { method },
+  })
+  revalidatePath("/checkout")
+  return result.ok ? { ok: true } : { ok: false, error: result.error }
 }
