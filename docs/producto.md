@@ -1,8 +1,9 @@
 # Documento de producto: Tienda online + punto de venta (MVP0)
 
-**Versión:** 2
+**Versión:** 3
 **Estado:** borrador para revisión
 **Última actualización:** 2026-10-23
+**Alcance actual:** desarrollo local. No hay despliegue en ningún servidor ni plataforma; esa etapa queda para después del MVP0 (sección 6.3).
 **Documentos relacionados:** `arquitectura.md` (cómo se construye), `seguridad.md` (cómo se protege), `planning.md` (cómo se organiza el trabajo)
 
 ---
@@ -11,7 +12,9 @@
 
 Sistema de tienda online con punto de venta local para un comercio minorista. Permite publicar un catálogo, vender por internet con tarjeta (Mercado Pago) o por transferencia bancaria con comprobante, y registrar ventas en el local. El stock es único y lo comparten la web y el local.
 
-El sistema se construye sobre **Medusa.js 2.22** y usa, siempre que sea posible, lo que Medusa trae de fábrica. Se entrega como una instancia por cliente, desplegada en **Coolify** sobre una VPS. No es multitenant.
+El sistema se construye sobre **Medusa.js 2.22** y usa, siempre que sea posible, lo que Medusa trae de fábrica. Se entrega como una instancia por cliente. No es multitenant.
+
+Por ahora el sistema se desarrolla y se prueba **solo en local**, sin cuentas ni servicios de terceros (con la excepción de la cuenta de pruebas de Mercado Pago). El código se escribe de forma portable para poder desplegarlo más adelante sin rehacerlo.
 
 ## 2. Contexto y problema
 
@@ -93,7 +96,22 @@ Cualquier otra pieza propia necesita justificarse antes de entrar al plan.
 - Cuentas de cliente con historial.
 - Guías de talles reutilizables.
 
-### 6.3 Fuera de alcance
+### 6.3 Etapa de despliegue (posterior al MVP0, sin fecha)
+
+Se hace cuando el MVP0 esté terminado y las decisiones pendientes estén resueltas. Incluye:
+
+- Elegir la plataforma de despliegue (previsto: Coolify sobre una VPS, a reconfirmar) y endurecer el servidor.
+- Dominio, HTTPS y entornos de staging y producción.
+- Almacenamiento externo de imágenes y comprobantes, compatible con S3.
+- Proveedor real de emails y dominio de envío.
+- Respaldos de la base de datos con restauración probada.
+- Integración continua en la plataforma del repositorio, monitoreo y alertas.
+- Verificación real del webhook de Mercado Pago con una URL pública, y credenciales de producción.
+- Botón de arrepentimiento y revisión legal de los textos (ver sección 11, riesgo legal).
+
+El detalle de cada pieza está en `planning.md`, sección "Etapa de despliegue".
+
+### 6.4 Fuera de alcance
 
 - Multitenant.
 - Notificaciones por WhatsApp.
@@ -111,6 +129,8 @@ Cualquier otra pieza propia necesita justificarse antes de entrar al plan.
 6. El cliente ve la confirmación y recibe un email con el enlace a su pedido.
 
 El momento exacto en que se crea el pedido (antes o después del pago) se define en el spike de Mercado Pago. Ver `arquitectura.md`, sección 10.
+
+**Nota para el desarrollo local:** Mercado Pago envía sus notificaciones a una URL pública, y no llegan a una computadora sin ella. En local, el sistema confirma los pagos consultando periódicamente a Mercado Pago (conciliación). La verificación con notificaciones reales queda para la etapa de despliegue o para un túnel temporal. Ver `arquitectura.md`, sección 10.4.
 
 ### 7.2 Compra por transferencia
 
@@ -197,7 +217,8 @@ El sistema no emite facturas. Conserva nombre, email, documento (si se informa) 
 ## 9. Comprobantes de transferencia
 
 - Formatos aceptados: JPG, PNG y PDF, de hasta 5 MB.
-- Son privados: solo el admin, el vendedor con permiso de lectura y el cliente del pedido pueden verlos.
+- Son privados: solo el admin y el vendedor con permiso de lectura pueden verlos, mediante un enlace temporal que vence a los 15 minutos. El cliente solo ve el estado de su comprobante.
+- En el MVP0 se guardan en el disco local, en una carpeta que nunca se sirve de forma directa.
 - Un comprobante no confirma el pago. Lo confirma el admin al capturar el pago.
 
 ## 10. Glosario
@@ -217,23 +238,26 @@ El sistema no emite facturas. Conserva nombre, email, documento (si se informa) 
 
 | Riesgo | Impacto | Mitigación |
 |---|---|---|
-| **Botón de arrepentimiento fuera del MVP0.** Es una obligación legal vigente para la venta online en Argentina. | Alto: sanciones al comercio si la tienda se abre al público sin él. | Decisión tomada de dejarlo fuera del MVP0. Se recomienda resolverlo antes de abrir las ventas al público. Ver `planning.md`, riesgos. |
+| **Botón de arrepentimiento fuera del MVP0.** Es una obligación legal vigente para la venta online en Argentina. | Alto: sanciones al comercio si la tienda se abre al público sin él. | Decisión tomada de dejarlo fuera del MVP0. Como no hay despliegue, no hay exposición hoy. Debe resolverse antes de abrir las ventas al público (etapa de despliegue). |
 | Descuento de transferencia usado con tarjeta | Pérdida de margen | Validación en el backend al completar el pedido. |
 | Pedidos falsos que bloquean stock | Ventas perdidas | Vencimiento corto y límites de pedidos pendientes. |
 | Comprobantes sin revisar a tiempo | Clientes insatisfechos | Aviso por email al admin y cola de revisión. |
 | Sobreventa entre web y local | Reclamos | Stock único con reservas nativas y pruebas de concurrencia. |
-| Compromiso del servidor | Pérdida de datos y fraude | Controles de `seguridad.md`. |
+| Los pagos con Mercado Pago no se pueden verificar de extremo a extremo en local | Un defecto en el webhook real aparece recién al desplegar | Simulador de notificaciones firmadas, conciliación periódica y verificación real en la etapa de despliegue. Ver `arquitectura.md`, sección 10.4. |
+| El código funciona solo en local | Retrabajo al desplegar | Variables de entorno para todo, build de producción verificado en local y criterio de portabilidad en la Definition of Done. |
+| Seguridad del servidor al desplegar | Pérdida de datos y fraude | Controles de `seguridad.md` marcados como "Despliegue". |
 
 ## 12. Preguntas abiertas
 
-1. Nombre comercial y dominio.
+1. Nombre comercial.
 2. Condición fiscal (monotributo o responsable inscripto).
 3. Porcentaje de descuento por transferencia.
 4. Si el efectivo o la transferencia en el local tienen descuento.
 5. Si un producto puede estar en más de una subcategoría.
 6. Costo del envío a domicilio.
-7. Proveedor de email.
-8. Email que recibe los avisos de comprobantes.
+7. Email que recibe los avisos de comprobantes.
+
+**Se definen en la etapa de despliegue:** dominio, plataforma de despliegue, proveedor de email, proveedor de almacenamiento externo y decisión sobre el botón de arrepentimiento.
 
 ## 13. Historial de cambios
 
@@ -241,3 +265,4 @@ El sistema no emite facturas. Conserva nombre, email, documento (si se informa) 
 |---|---|---|
 | 2026-10-23 | 1 | Primera versión. |
 | 2026-10-23 | 2 | Revisión completa: principio de usar lo nativo de Medusa, transferencias sobre el proveedor manual, estados apoyados en Medusa, descuento con una sola fuente, canal "Local" para el punto de venta, control de abuso de reservas, todo en Coolify, botón de arrepentimiento registrado como riesgo. |
+| 2026-10-23 | 3 | Alcance reducido a desarrollo local: sin despliegue en ninguna plataforma. Se agrega la etapa de despliegue como trabajo posterior, la estrategia de pago en local y los riesgos de portabilidad. |

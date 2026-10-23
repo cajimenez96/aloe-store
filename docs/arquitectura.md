@@ -1,14 +1,16 @@
 # Arquitectura técnica: Tienda online + punto de venta (MVP0)
 
-**Versión:** 2.1
+**Versión:** 3
 **Estado:** borrador para revisión
 **Última actualización:** 2026-10-23
+**Alcance actual:** desarrollo local. No hay despliegue en ningún servidor ni plataforma. La sección 21 describe cómo se prepara el código para desplegarlo más adelante.
 **Documentos relacionados:** `producto.md`, `seguridad.md`, `planning.md`
 
 > **Convenciones de este documento**
 > - **[Medusa]**: viene de la plataforma, se usa sin modificaciones.
 > - **[Propio]**: lo desarrollamos con las extensiones oficiales de Medusa.
-> - **[Verificar]**: debe confirmarse contra la documentación y el código de la versión instalada antes de implementar. Los puntos de SP-01 ya están resueltos y quedan marcados como **[Confirmado]**, con la evidencia en `sp-01-medusa.md`. Los que siguen con **[Verificar]** se resuelven en la historia indicada.
+> - **[Verificar]**: debe confirmarse contra la documentación y el código de la versión instalada antes de implementar. Todos los puntos marcados así forman parte del spike SP-01 de `planning.md`.
+> - **[Local]** y **[Despliegue]**: indican en qué etapa aplica un elemento. Lo que no lleva marca aplica en ambas.
 
 ---
 
@@ -19,59 +21,62 @@
 3. **Una sola fuente de verdad por dato.** Ningún valor de negocio vive en dos lugares.
 4. **El servidor decide.** Precios, totales, estados de pago y permisos se calculan y validan en el backend.
 5. **Seguro por defecto.** Lo que no está permitido explícitamente está denegado. Ver `seguridad.md`.
+6. **Local primero.** El MVP0 se construye y se prueba completo en local, sin cuentas ni servicios de terceros. La única excepción es la cuenta de pruebas de Mercado Pago.
+7. **Portable por configuración.** Nada depende de un proveedor concreto. Las diferencias entre local y un futuro despliegue se resuelven con variables de entorno y con módulos intercambiables (almacenamiento y notificaciones). No hay URLs, dominios, rutas absolutas ni claves escritas en el código.
 
 ## 2. Stack tecnológico
 
-| Componente | Tecnología | Tipo |
-|---|---|---|
-| Backend, API y panel | Medusa.js 2.22 (TypeScript) | [Medusa] |
-| Runtime | Node.js 22.22 o superior | Requisito de Medusa 2.22 |
-| Base de datos | PostgreSQL | [Medusa] |
-| Caché, eventos y colas | Redis | [Medusa] |
-| Storefront | Next.js 16.4.3 (versión exacta, sin `^`) | [Propio] |
-| Estilos y componentes del storefront | Tailwind CSS, shadcn/ui, Phosphor Icons | [Propio] |
-| Estado del storefront | Zustand (solo estado de interfaz) y TanStack Query (solo interacciones del cliente) | [Propio] |
-| Catálogo de componentes | Storybook (solo storefront) | [Propio] |
-| Extensiones del panel | Medusa Admin SDK y Medusa UI | [Propio] sobre [Medusa] |
-| Pago con tarjeta | Mercado Pago Checkout Pro | Plugin evaluado o proveedor propio (SP-02) |
-| Pago por transferencia | Proveedor manual de Medusa (`pp_system_default`) | [Medusa] |
-| Imágenes de producto | Cloudflare R2 con el proveedor `file-s3` | [Medusa] + configuración |
-| Comprobantes | Cloudflare R2, bucket privado, con SDK de S3 | [Propio] |
-| Emails | Proveedor de notificaciones compatible con Medusa | Pendiente de elegir |
-| Despliegue | Coolify sobre una VPS, con Docker | Infraestructura |
+| Componente | MVP0 (local) | Al desplegar (futuro) | Tipo |
+|---|---|---|---|
+| Backend, API y panel | Medusa.js 2.22 (TypeScript) | Igual | [Medusa] |
+| Runtime | Node.js 22.22 o superior | Igual | Requisito de Medusa 2.22 |
+| Base de datos | PostgreSQL en Docker | A definir (en el servidor o gestionada) | [Medusa] |
+| Caché, eventos y colas | Redis en Docker | A definir | [Medusa] |
+| Storefront | Next.js 16.4.3 (versión exacta, sin `^`) con `next dev` | Igual, con `next build` y `next start` | [Propio] |
+| Estilos y componentes | Tailwind CSS, shadcn/ui, Phosphor Icons | Igual | [Propio] |
+| Estado del storefront | Zustand (solo estado de interfaz) y TanStack Query (solo interacciones del cliente) | Igual | [Propio] |
+| Catálogo de componentes | Storybook (solo storefront) | Igual | [Propio] |
+| Extensiones del panel | Medusa Admin SDK y Medusa UI | Igual | [Propio] sobre [Medusa] |
+| Pago con tarjeta | Mercado Pago Checkout Pro con credenciales de prueba | Credenciales de producción | Plugin o proveedor propio (SP-02) |
+| Pago por transferencia | Proveedor manual de Medusa (`pp_system_default`) | Igual | [Medusa] |
+| Imágenes de producto | Proveedor local de Medusa (`file-local`, registrado por defecto), carpeta `static/` | Proveedor `file-s3` hacia un almacenamiento compatible con S3 (proveedor sin decidir) | [Medusa] |
+| Comprobantes | Módulo propio con driver de disco local, en una carpeta privada | Driver S3 en un bucket privado | [Propio] |
+| Emails | Proveedor local de Medusa (registra en la terminal, no envía) | Proveedor real (sin decidir) | [Medusa] |
+| Infraestructura | Docker Compose para PostgreSQL y Redis. Backend y storefront corren en la máquina con recarga automática. | Plataforma sin decidir (previsto: Coolify sobre una VPS, a reconfirmar) | [Despliegue] |
+| Verificaciones | Script `npm run check` y hooks de Git | Integración continua en la plataforma del repositorio | [Local] y [Despliegue] |
 
 ## 3. Vista general
 
 ```
-                     Internet
-                        │
-              ┌─────────▼──────────┐
-              │ Proxy de Coolify   │  HTTPS, certificados, límites de solicitudes
-              └──┬─────────────┬───┘
-                 │             │
-     ┌───────────▼───┐   ┌─────▼─────────────────────────┐
-     │ Storefront    │   │ Medusa (modo servidor)        │
-     │ Next.js       │──▶│  /store  API de tienda        │
-     │               │   │  /admin  API de admin         │
-     └───────────────┘   │  /app    Panel + punto de venta│
-                         │  /hooks  Webhooks              │
-                         └───┬──────────────┬─────────────┘
-                             │              │
-                   ┌─────────▼──┐   ┌───────▼──────────┐
-                   │ PostgreSQL │   │ Redis            │◀── Medusa (modo worker)
-                   └────────────┘   └──────────────────┘    jobs y suscriptores
+  Tu computadora (todo en localhost)
 
-  Red interna de Docker: PostgreSQL y Redis no publican puertos.
+  ┌──────────────────┐        ┌────────────────────────────────────────┐
+  │ Storefront       │        │ Medusa (modo compartido)    :9000      │
+  │ Next.js :3000    │──API──▶│  /store  API de tienda                 │
+  └──────────────────┘        │  /admin  API de admin                  │
+                              │  /app    Panel y punto de venta        │
+                              │  /hooks  Webhooks                      │
+                              │  Jobs y suscriptores (mismo proceso)   │
+                              └───────┬───────────────────┬────────────┘
+                                      │                   │
+                            ┌─────────▼──┐         ┌──────▼──────┐
+                            │ PostgreSQL │         │ Redis       │   Docker Compose
+                            │ 127.0.0.1  │         │ 127.0.0.1   │   (solo localhost)
+                            └────────────┘         └─────────────┘
 
-  Servicios externos:
-  ─ Cloudflare R2: imágenes (público por dominio propio), comprobantes (privado), respaldos (privado)
-  ─ Mercado Pago: Checkout Pro y webhooks
-  ─ Proveedor de email
+  Archivos locales (fuera de Git):
+   ─ apps/backend/static/        Imágenes de producto. Medusa lo sirve de forma pública.
+   ─ storage/private/proofs/     Comprobantes. Nunca se sirve de forma directa.
 
-  Panel de Coolify: accesible solo por VPN o IP permitida (seguridad.md, SEC-02)
+  Único servicio externo: Mercado Pago (credenciales de prueba)
 ```
 
-Medusa corre en dos procesos con la misma imagen: el **servidor**, que atiende solicitudes HTTP, y el **worker**, que ejecuta jobs programados y suscriptores de eventos. **[Confirmado]** `MEDUSA_WORKER_MODE` toma `server` o `worker`, y `DISABLE_MEDUSA_ADMIN=true` desactiva el panel en el worker (`sp-01-medusa.md`, punto 9).
+**Reglas de esta vista:**
+
+- Nada privado se guarda jamás en `static/`, porque Medusa expone esa carpeta públicamente.
+- PostgreSQL y Redis se publican solo en `127.0.0.1`, para que nadie en la red local pueda llegar a ellos.
+- Backend y storefront deben escuchar solo en localhost. **[Verificar]** la variable o la opción que lo controla en Medusa y en Next.js.
+- En local, Medusa corre en un solo proceso que atiende solicitudes y también ejecuta jobs y suscriptores (modo compartido). **[Verificar]** que ese sea el valor por defecto y su nombre exacto. La separación en servidor y worker se prueba antes de desplegar (sección 21).
 
 ## 4. Estructura del repositorio
 
@@ -84,38 +89,46 @@ ecommerce-mvp0/
 │   │   │   │                    #   revisión de comprobantes, datos bancarios, muestra de color
 │   │   │   ├── api/             # Rutas propias (/store/... y /admin/...)
 │   │   │   ├── modules/
-│   │   │   │   └── transfer-proof/   # Comprobantes de transferencia
+│   │   │   │   └── transfer-proof/
+│   │   │   │       └── storage/ # Interfaz de almacenamiento y driver local
 │   │   │   ├── workflows/       # Flujos propios y hooks sobre flujos nativos
 │   │   │   ├── subscribers/     # Emails y avisos
 │   │   │   └── jobs/            # Vencimiento de pedidos, conciliación de pagos
+│   │   ├── static/              # Imágenes de producto (proveedor local). Fuera de Git.
 │   │   ├── medusa-config.ts
-│   │   ├── Dockerfile
 │   │   └── .env.example
 │   └── storefront/              # Next.js 16.4.3
 │       ├── src/
 │       ├── .storybook/
-│       ├── Dockerfile
 │       └── .env.example
 ├── packages/
 │   └── shared-types/            # DTOs compartidos
+├── scripts/
+│   ├── setup-store.ts           # Configuración base, idempotente (sección 5)
+│   ├── simulate-mp-webhook.ts   # Notificaciones firmadas de prueba (sección 10.4)
+│   └── check.sh                 # Lint, tipos, pruebas y build
+├── storage/                     # Fuera de Git
+│   └── private/proofs/          # Comprobantes. Nunca se sirve de forma directa.
 ├── docs/
 │   ├── producto.md
 │   ├── arquitectura.md
 │   ├── seguridad.md
 │   └── planning.md
-├── docker-compose.yml           # Desarrollo local
+├── docker-compose.yml           # PostgreSQL y Redis
 └── README.md
 ```
 
+Los Dockerfiles de backend y storefront no existen en el MVP0. Se escriben en la etapa de despliegue (sección 21).
+
 ## 5. Configuración base de Medusa
 
-Esta configuración la realiza el superadmin una sola vez por instancia. Se documenta en un script o en una guía del README para que sea repetible.
+Esta configuración la realiza el superadmin una sola vez por instancia. Se automatiza con `scripts/setup-store.ts`, que es idempotente (ejecutarlo dos veces no duplica nada). Así se puede recrear el entorno local desde cero en pocos minutos y, más adelante, repetir la misma configuración en un entorno desplegado.
 
 | Elemento | Configuración | Tipo |
 |---|---|---|
 | Moneda | ARS como moneda por defecto de la tienda | [Medusa] |
 | Región | "Argentina", país AR, moneda ARS | [Medusa] |
-| Impuestos | Precios con impuestos incluidos. La alícuota depende de la condición fiscal del cliente (pendiente). | [Medusa] **[Confirmado]** con las preferencias de precio (`/admin/price-preferences`) de la moneda `ars` y de la región, en `is_tax_inclusive: true`. Por defecto vienen en `false`. |
+| Impuestos | Precios con impuestos incluidos. La alícuota depende de la condición fiscal del cliente (pendiente). | [Medusa] **[Verificar]** opción de precios con impuestos incluidos |
 | Canales de venta | "Web" y "Local" | [Medusa] |
 | Clave publicable | Una clave asociada al canal "Web", usada por el storefront | [Medusa] |
 | Ubicación de stock | "Local", asociada a ambos canales | [Medusa] |
@@ -141,7 +154,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 - El **porcentaje de descuento por transferencia** vive solo en la promoción de Medusa.
 - El **costo de envío** vive solo en la opción de envío de Medusa.
 
-**[Confirmado]** la API de tienda no expone `Store` ni su `metadata` (no existe `/store/stores`). `transfer_promotion_code` puede quedar ahí.
+**[Verificar]** que la `metadata` de `Store` no se exponga en la API de tienda. Si se expone, `transfer_promotion_code` debe moverse a una variable de entorno.
 
 ## 7. Modelo de datos
 
@@ -150,7 +163,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 | Entidad | Uso |
 |---|---|
 | `Product`, `ProductOption`, `ProductOptionValue`, `ProductVariant` | Catálogo, talles, colores y variantes. Las opciones se definen por producto. |
-| `ProductCategory` | Jerarquía de tres niveles. Desactivación con el campo nativo `is_active`. **[Confirmado]** su valor por defecto es `false`: una categoría nueva no se ve en la tienda hasta activarla. |
+| `ProductCategory` | Jerarquía de tres niveles. Desactivación con el campo nativo de categoría activa. **[Verificar]** nombre del campo. |
 | `Price` | Precio de lista por variante. |
 | `InventoryItem`, `InventoryLevel`, `ReservationItem` | Stock y reservas. |
 | `SalesChannel` | "Web" y "Local". |
@@ -162,7 +175,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 
 ### 7.2 Datos propios
 
-**Muestra de color.** Se guarda en la `metadata` del valor de opción de color: `{ "hex": "#RRGGBB" }`. **[Verificar en HU-09]** `ProductOptionValue` tiene el campo `metadata`, pero la ruta `POST /admin/product-options/:id` no lo acepta (`sp-01-medusa.md`, punto 2). Salvo que HU-09 encuentre otra ruta que lo escriba, se crea un módulo con un vínculo a `ProductOptionValue`.
+**Muestra de color.** Se guarda en la `metadata` del valor de opción de color: `{ "hex": "#RRGGBB" }`. **[Verificar]** que `ProductOptionValue` admita `metadata` editable. Si no la admite, se crea un módulo con un vínculo a `ProductOptionValue`.
 
 **Acceso del cliente al pedido.** Se guarda en la `metadata` del pedido:
 
@@ -171,7 +184,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 | `access_token_hash` | Hash SHA-256 del token. El token nunca se guarda. |
 | `access_token_expires_at` | Vencimiento del token. Se fija cuando el pedido se cierra. |
 
-**[Confirmado]** `GET /store/orders/:id` no devuelve la `metadata` del pedido, ni siquiera con `fields=metadata`. Esa misma ruta nativa **no tiene autenticación** y expone email, totales y dirección del cliente, así que la tienda no la usa y un middleware la bloquea (sección 13.3).
+**[Verificar]** que la `metadata` del pedido no se devuelva en respuestas públicas. Aunque solo contiene un hash, conviene no exponerla.
 
 **Comprobante de transferencia.** Módulo propio `transfer-proof`, vinculado a `Order`.
 
@@ -179,7 +192,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 |---|---|---|---|
 | `id` | string | sí | Identificador. |
 | `order_id` | string | sí | Pedido. Un pedido puede tener varios comprobantes (uno por intento). |
-| `storage_key` | string | sí | Clave en el bucket privado. |
+| `storage_key` | string | sí | Clave del archivo en el almacenamiento privado. En local, nombre del archivo dentro de `PROOFS_LOCAL_DIR`. |
 | `mime_type` | string | sí | `image/jpeg`, `image/png` o `application/pdf`. |
 | `size_bytes` | integer | sí | Tamaño. |
 | `sha256` | string | sí | Hash del archivo, para detectar comprobantes repetidos. |
@@ -206,7 +219,7 @@ No hay una máquina de estados propia. Los estados del negocio (`producto.md`, s
 | Cancelado | cancelado | cancelado | cualquiera |
 | Reembolsado | cualquiera | reembolsado total o parcial | cualquiera |
 
-**[Confirmado]** al completar el carrito con el proveedor manual, el pedido queda `pending` y el pago `authorized`. Al cancelar, ambos pasan a `canceled`. Una captura deja el pago en `captured`.
+**[Verificar]** los nombres exactos de los estados de pedido y de pago en Medusa 2.22, y en qué estado queda el pago con el proveedor manual al completar el carrito.
 
 ## 9. Descuento por transferencia
 
@@ -225,9 +238,8 @@ Las promociones automáticas se aplican cuando el carrito cumple sus condiciones
 
 ### 9.3 Pendiente de verificación
 
-- **[Confirmado]** al aplicar o quitar la promoción, Medusa sincroniza el monto de la colección de pago y borra sus sesiones. La ruta propia crea una sesión nueva después de cambiar la promoción.
-- **[Confirmado]** quitar una promoción es `DELETE /store/carts/:id/promotions` con `promo_codes` en el cuerpo.
-- **[Verificar en HU-22]** que el hook `validate` de `completeCartWorkflow` permita leer la sesión de pago elegida. El hook existe.
+- **[Verificar]** que al aplicar o quitar la promoción se recalcule el total de la colección de pago, o reiniciar la sesión de pago de forma explícita.
+- **[Verificar]** que el hook del flujo de completar carrito permita leer la sesión de pago elegida.
 
 ## 10. Pago con tarjeta (Mercado Pago)
 
@@ -235,7 +247,7 @@ Las promociones automáticas se aplican cuando el carrito cumple sus condiciones
 
 1. El storefront inicia la sesión de pago con el proveedor de Mercado Pago. El backend crea la preferencia de Checkout Pro con el total calculado por Medusa y una referencia externa propia del carrito.
 2. El cliente paga en Mercado Pago y vuelve a la tienda.
-3. Mercado Pago envía una notificación al webhook del backend.
+3. Mercado Pago envía una notificación al webhook del backend. En local, esa notificación no llega sin URL pública y la conciliación de la sección 10.3 cumple su función (sección 10.4).
 4. El backend valida la firma, consulta el pago a la API de Mercado Pago, verifica monto, moneda y referencia, y actualiza el pago (`seguridad.md`, SEC-32).
 5. La página de regreso muestra el estado que consulta el backend.
 
@@ -250,7 +262,35 @@ La decisión se toma en SP-02 según cómo funcione el plugin elegido o el contr
 
 ### 10.3 Conciliación
 
-Un job del worker revisa periódicamente los pagos iniciados sin resolución, consultando la API de Mercado Pago. Cubre los casos en que el webhook no llega.
+Un job revisa periódicamente los pagos iniciados sin resolución, consultando la API de Mercado Pago. Cubre los casos en que el webhook no llega. En local es el mecanismo principal de confirmación (sección 10.4). Al desplegar sigue activo como red de seguridad.
+
+### 10.4 Pruebas en local
+
+Dos límites de Mercado Pago condicionan el desarrollo local:
+
+- Las notificaciones (webhooks) las envía Mercado Pago a una URL pública, así que no llegan a `localhost`.
+- La documentación de Mercado Pago indica no usar `localhost` ni `127.0.0.1` en las URLs de retorno (`back_urls`), y recomienda un dominio con nombre o IPs de desarrollo.
+
+Por eso las pruebas se organizan en dos niveles.
+
+**Nivel 1: siempre disponible, sin URL pública.**
+
+1. **Notificaciones simuladas.** `scripts/simulate-mp-webhook.ts` envía al backend local notificaciones con una firma generada con un secreto de prueba local (no el de Mercado Pago). Permite probar firma válida, firma inválida, notificación vencida, notificación repetida y monto distinto.
+2. **Conciliación.** El job de la sección 10.3 consulta a la API de Mercado Pago, con credenciales de prueba, los pagos pendientes. En local es el mecanismo principal de confirmación: permite completar un pago real de sandbox sin URL pública.
+3. **Retorno manual.** Después de pagar en el sitio de Mercado Pago, la persona vuelve a mano a la página del pedido, que muestra el estado consultado al backend (SEC-33).
+4. **URLs opcionales.** `MP_NOTIFICATION_URL` y `MP_BACK_URL_BASE` son opcionales: si no están definidas, la preferencia se crea sin ellas.
+
+**Nivel 2: opcional, verificación real de extremo a extremo.**
+
+Un túnel temporal que exponga el backend local con un nombre público y HTTPS, usado solo mientras dura la prueba. Es una herramienta de desarrollo, no un despliegue. Las opciones conocidas son ngrok y Cloudflare Tunnel. Los requisitos de cuenta y las condiciones de cada una se verifican al elegir.
+
+**Se verifica en SP-02:**
+
+- Qué ocurre al crear la preferencia sin `back_urls` o sin `notification_url`.
+- Si Mercado Pago acepta un alias de host local (por ejemplo `tienda.test`) o una IP de la red local en `back_urls`.
+- Qué plugin, o qué proveedor propio, permite configurar esas dos URLs por variables de entorno.
+
+**Límite que se asume.** El comportamiento real de los webhooks de Mercado Pago (reintentos, orden de eventos, firma real) no se puede confirmar sin una URL pública. Esa verificación es la historia HU-51 de la etapa de despliegue.
 
 ## 11. Pago por transferencia
 
@@ -261,7 +301,7 @@ Un job del worker revisa periódicamente los pagos iniciados sin resolución, co
 5. El admin revisa el comprobante en una extensión del panel:
    - **Aceptar:** el comprobante pasa a `accepted` y se captura el pago con el flujo nativo de Medusa.
    - **Rechazar:** el comprobante pasa a `rejected` con motivo. El pedido sigue pendiente.
-6. Un job del worker cancela los pedidos por transferencia sin comprobante aceptado después de `transfer_reservation_hours`, usando la cancelación nativa. **[Confirmado]** la cancelación nativa libera las reservas de stock.
+6. Un job cancela los pedidos por transferencia sin comprobante aceptado después de `transfer_reservation_hours`, usando la cancelación nativa. **[Verificar]** que la cancelación nativa libere las reservas de stock.
 
 Un pedido con un comprobante en revisión no se cancela por vencimiento hasta que el admin lo revise.
 
@@ -269,8 +309,7 @@ Un pedido con un comprobante en revisión no se cancela por vencimiento hasta qu
 
 - Es una **ruta propia dentro del panel de Medusa**, construida con Medusa Admin SDK y Medusa UI. No usa shadcn ni el storefront.
 - Cada venta se crea en el canal "Local", con el proveedor manual y el pago capturado en el mismo paso.
-- **[Confirmado]** los pedidos borrador sirven como base: borrador, conversión a pedido, colección de pago y `mark-as-paid` dejan el pago `captured` (`sp-01-medusa.md`, punto 8).
-- **[Verificar en HU-34]** el stock físico no baja al cobrar, solo queda reservado. La venta del local debe además registrar el despacho para descontarlo.
+- **[Verificar]** si los pedidos borrador (`draft orders`) de Medusa sirven como base. Si no, la ruta propia ejecuta los workflows nativos de creación de pedido.
 - El reporte de ventas del día filtra pedidos por canal "Local" y fecha.
 
 ## 13. Endpoints
@@ -281,11 +320,11 @@ Un pedido con un comprobante en revisión no se cancela por vencimiento hasta qu
 - **Admin:** sesión o token de usuario autenticado.
 - **Cliente invitado:** token de acceso al pedido en el header `x-order-token`.
 - Formato JSON, fechas ISO 8601 en UTC.
-- **[Confirmado]** los montos están en la unidad de la moneda (1500 es 1500 pesos), no en centavos.
+- **[Verificar]** si Medusa 2.22 expresa los montos en unidades de la moneda o en centavos.
 
 ### 13.2 Endpoints nativos usados [Medusa]
 
-**[Confirmado]** todas estas rutas existen en Medusa 2.22 (`sp-01-medusa.md`). La ruta `GET /store/orders/:id` también existe, pero no está en esta lista a propósito: no tiene autenticación y se bloquea.
+Los nombres siguen la API de Medusa 2.x. **Todos se verifican en SP-01** contra la versión instalada.
 
 **Tienda**
 
@@ -321,7 +360,7 @@ La aplicación y quita de promociones no se expone al cliente. La hace el backen
 | GET | `/store/order-access/:id` | Token del pedido | Detalle del pedido para el cliente invitado. |
 | POST | `/store/order-access/:id/transfer-proofs` | Token del pedido | Subir comprobante. |
 | GET | `/store/order-access/:id/transfer-proofs` | Token del pedido | Estado del último comprobante y motivo de rechazo. |
-| POST | `/hooks/mercadopago` | Firma de Mercado Pago | Webhook (solo si se desarrolla el proveedor propio; con plugin, la ruta la define el plugin). |
+| POST | `/hooks/mercadopago` | Firma de Mercado Pago | Webhook (solo si se desarrolla el proveedor propio; con plugin, la ruta la define el plugin). En local se prueba con el simulador (sección 10.4). |
 
 **Admin**
 
@@ -329,6 +368,7 @@ La aplicación y quita de promociones no se expone al cliente. La hace el backen
 |---|---|---|---|
 | GET | `/admin/transfer-proofs` | admin, vendedor (lectura) | Cola de comprobantes, filtrable por estado. |
 | GET | `/admin/transfer-proofs/:id/url` | admin, vendedor (lectura) | Enlace firmado de 15 minutos. |
+| GET | `/admin/transfer-proofs/:id/file` | admin, vendedor (lectura) | Entrega el archivo con el driver local, validando el token firmado y la sesión. Con el driver S3 no se usa. |
 | POST | `/admin/transfer-proofs/:id/accept` | admin | Aceptar y capturar el pago. |
 | POST | `/admin/transfer-proofs/:id/reject` | admin | Rechazar con motivo. |
 | GET / PATCH | `/admin/store-settings` | admin | Leer y editar las claves de `store.metadata` de la sección 6. |
@@ -512,15 +552,15 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 
 | Quién | Mecanismo | Detalle |
 |---|---|---|
-| Superadmin, admin y vendedor | Usuario y contraseña de Medusa | **[Confirmado]** el login devuelve un JWT y `POST /auth/session` crea una sesión por cookie `HttpOnly`, de 10 horas por defecto. En `production` y `staging` es `Secure` y `SameSite=Lax`. |
+| Superadmin, admin y vendedor | Usuario y contraseña de Medusa | Sesión del panel. **[Verificar]** si 2.22 usa cookie de sesión, JWT o ambos, y su vencimiento. |
 | Storefront | Clave publicable del canal "Web" | Identifica la tienda. Es pública y no da acceso a datos privados. |
 | Cliente comprando | Sin cuenta | El identificador del carrito vive en una cookie `HttpOnly` del storefront. |
 | Cliente consultando su pedido | Token de acceso al pedido | Ver `seguridad.md`, SEC-24. |
 
 ### 16.2 Roles
 
-- **[Confirmado]** los roles y políticas nativos (`@medusajs/rbac`) son un módulo con licencia y están desactivados por defecto. No se usan en el MVP0.
-- **Decisión:** guard propio sobre `/admin/*` con lista de rutas permitidas para el vendedor y **denegación por defecto**.
+- **Opción preferida:** usar los roles y políticas nativos de Medusa. Las notas de versión recientes muestran trabajo en roles, políticas y superadmin dentro de Medusa. **[Verificar]** si está disponible en la versión de código abierto 2.22, si requiere un flag y cómo se configura.
+- **Alternativa:** guard propio sobre `/admin/*` con lista de rutas permitidas para el vendedor y **denegación por defecto**.
 - En ambos casos, cada ruta del admin tiene una prueba automatizada por rol.
 - **Limitación conocida:** el menú del panel puede mostrar secciones que el usuario no puede usar. Se documenta para el dueño y se evalúa ocultarlas con extensiones del panel.
 
@@ -528,71 +568,88 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 
 ### 17.1 Base de datos
 
-PostgreSQL es la única fuente de verdad. Migraciones con las herramientas de Medusa, ejecutadas antes de cada despliegue.
+PostgreSQL es la única fuente de verdad. En local corre en Docker con un volumen propio. Las migraciones se hacen con las herramientas de Medusa. `docker compose down -v` destruye los datos y permite empezar desde cero.
 
-### 17.2 Imágenes de producto [Medusa]
+Los datos de desarrollo son descartables y **nunca incluyen datos reales de clientes**.
 
-- Proveedor oficial `file-s3` apuntando a Cloudflare R2.
-- Servidas desde un dominio propio (`imagenes.<dominio>`). Las URLs guardadas usan ese dominio, así una migración futura a MinIO no requiere reescribir datos.
-- El storefront las optimiza con `next/image`, con el dominio declarado en la configuración.
+### 17.2 Imágenes de producto [Medusa] [Local]
+
+- Se usa el proveedor local de Medusa, que viene registrado por defecto. Guarda los archivos en `apps/backend/static/` y los sirve de forma pública.
+- La URL base se toma de `MEDUSA_BACKEND_URL`.
+- Regla: **nada privado se guarda en `static/`**.
+- Se validan formato (JPG, PNG o WebP), contenido real del archivo y tamaño máximo de 5 MB (SEC-50). **[Verificar]** si Medusa ofrece esta validación o si hace falta un middleware propio.
+- El storefront usa `next/image`. **[Verificar]** cómo servir imágenes desde `localhost` con `next/image` en Next.js 16.4.3, que podría exigir una configuración específica.
+- Las URLs guardadas en local (`http://localhost:9000/static/...`) no sirven fuera de la máquina. Por eso el catálogo de prueba no se promueve a un entorno desplegado (sección 20.4).
 
 ### 17.3 Comprobantes [Propio]
 
-- Bucket privado separado. El módulo de archivos de Medusa acepta un solo proveedor, por eso los comprobantes usan el SDK de S3 desde el módulo `transfer-proof`.
-- Detalle de controles en `seguridad.md`, SEC-51.
+El módulo de archivos de Medusa acepta un solo proveedor y está pensado para archivos públicos, así que los comprobantes se guardan con un módulo propio, que escribe a través de una interfaz intercambiable:
+
+```ts
+interface ProofStorage {
+  put(key: string, data: Buffer, mime: string): Promise<void>
+  getAccessUrl(
+    key: string,
+    ttlSeconds: number,
+    ctx: { proofId: string; userId: string }
+  ): Promise<string>
+  remove(key: string): Promise<void>
+}
+```
+
+**Driver local (MVP0).**
+
+- Guarda en `PROOFS_LOCAL_DIR` (por defecto `storage/private/proofs/`), fuera de `static/` y fuera del alcance de cualquier ruta pública.
+- La clave es un identificador aleatorio generado por el sistema, sin el nombre original ni extensión. El tipo se guarda en la base de datos.
+- `getAccessUrl` devuelve la URL de la ruta `GET /admin/transfer-proofs/:id/file` con un token firmado (HMAC con `PROOFS_URL_SIGNING_SECRET`) que incluye el comprobante, el usuario y un vencimiento de 15 minutos.
+- Esa ruta exige además una sesión de admin, o de vendedor con permiso de lectura. Entrega el archivo con `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`, `Cache-Control: no-store` y `Content-Security-Policy: sandbox`, para que un archivo malicioso no pueda ejecutarse en el contexto del panel (mismo origen).
+
+**Driver S3 (etapa de despliegue).** Se agrega en TEC-04. `getAccessUrl` devuelve un enlace firmado del proveedor con el mismo vencimiento. El contrato de la interfaz no cambia.
+
+**Validaciones al subir (SEC-51):** tipo real por el contenido (JPG, PNG o PDF), máximo 5 MB, hash SHA-256 guardado para detectar archivos repetidos.
+
+**Pruebas de contrato.** Cualquier driver debe pasar la misma batería de pruebas. El driver S3 se suma a esa batería cuando exista.
 
 ### 17.4 Respaldos
 
-Bucket privado exclusivo, con credenciales propias. Ver `seguridad.md`, SEC-90.
+No aplican en local. Ver la sección 21 y `seguridad.md`, SEC-90.
 
 ### 17.5 Variables de entorno
 
-**Backend**
+**Backend (`apps/backend/.env`)**
 
 ```
-NODE_ENV=
-MEDUSA_WORKER_MODE=            # server | worker (shared solo en local sin Docker)
-DISABLE_MEDUSA_ADMIN=          # false en servidor, true en worker
-MEDUSA_BACKEND_URL=
-DATABASE_URL=
-REDIS_URL=
-JWT_SECRET=
-COOKIE_SECRET=
-STORE_CORS=
-ADMIN_CORS=
-AUTH_CORS=
+NODE_ENV=development
+MEDUSA_BACKEND_URL=http://localhost:9000
+DATABASE_URL=postgres://postgres:<clave-local>@127.0.0.1:5432/medusa_dev
+REDIS_URL=redis://127.0.0.1:6379
+JWT_SECRET=                    # generado en cada máquina
+COOKIE_SECRET=                 # generado en cada máquina
+STORE_CORS=http://localhost:3000
+ADMIN_CORS=http://localhost:9000
+AUTH_CORS=http://localhost:9000,http://localhost:3000
 
-# Imágenes (público)
-S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
-S3_REGION=auto
-S3_BUCKET=
-S3_ACCESS_KEY_ID=
-S3_SECRET_ACCESS_KEY=
-S3_FILE_URL=https://imagenes.<dominio>
+# Comprobantes
+PROOFS_STORAGE_DRIVER=local
+PROOFS_LOCAL_DIR=../../storage/private/proofs
+PROOFS_URL_SIGNING_SECRET=     # generado en cada máquina
 
-# Comprobantes (privado)
-PROOFS_S3_BUCKET=
-PROOFS_S3_ACCESS_KEY_ID=
-PROOFS_S3_SECRET_ACCESS_KEY=
-
-# Mercado Pago
+# Mercado Pago (solo credenciales de prueba)
 MERCADOPAGO_ACCESS_TOKEN=
-MERCADOPAGO_WEBHOOK_SECRET=
-
-# Email
-EMAIL_PROVIDER_API_KEY=
-EMAIL_FROM=
+MERCADOPAGO_WEBHOOK_SECRET=    # en local: secreto de prueba para el simulador
+MP_NOTIFICATION_URL=           # vacío si no hay URL pública
+MP_BACK_URL_BASE=              # opcional. Ver sección 10.4
 ```
 
-**Storefront**
+**Storefront (`apps/storefront/.env.local`)**
 
 ```
-NEXT_PUBLIC_MEDUSA_BACKEND_URL=
+NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://localhost:9000
 NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=
-NEXT_PUBLIC_IMAGES_DOMAIN=imagenes.<dominio>
+NEXT_PUBLIC_IMAGES_HOST=localhost:9000
 ```
 
-**Respaldos** (servicio o job de respaldo): credenciales propias del bucket de respaldos y clave de cifrado.
+**Variables que se agregan al desplegar** (no se usan en el MVP0): endpoint, bucket y claves de almacenamiento S3 para imágenes y comprobantes, `PROOFS_STORAGE_DRIVER=s3`, credenciales del proveedor de email, variables del modo servidor y worker, credenciales del bucket de respaldos, CORS con los dominios reales y credenciales de producción de Mercado Pago.
 
 ## 18. Storefront
 
@@ -603,7 +660,8 @@ NEXT_PUBLIC_IMAGES_DOMAIN=imagenes.<dominio>
 - **TanStack Query** solo para datos que se consultan desde el navegador después de cargar la página, como el estado del comprobante en la página del pedido.
 - **Zustand** solo para estado de interfaz: apertura del carrito lateral, filtros en edición y preferencias visuales. Nunca para precios, stock ni contenido del carrito.
 - **Storybook** documenta los componentes del storefront.
-- Se despliega como contenedor en Coolify, en modo `standalone`.
+- En desarrollo corre con `next dev`. Antes de dar por terminada una historia se verifica también el build de producción con `next build` y `next start`, para detectar diferencias de comportamiento.
+- La cookie `Secure` se exige al desplegar con HTTPS. En local se desactiva por configuración, porque no hay HTTPS.
 
 ## 19. Notificaciones
 
@@ -615,83 +673,163 @@ NEXT_PUBLIC_IMAGES_DOMAIN=imagenes.<dominio>
 | Comprobante rechazado | Cliente | Motivo y enlace para subir otro. |
 | Pedido cancelado | Cliente | Motivo (vencimiento o cancelación del comercio). |
 
-Los emails se envían desde suscriptores del worker, con reintentos. El proveedor está pendiente de elección (TEC-02 de `planning.md`).
+**En local** se usa el proveedor de notificaciones local de Medusa, que viene registrado por defecto y solo registra el contenido en la terminal, sin enviar nada. Hay que configurarle el canal `email`. Las plantillas se verifican con pruebas de renderizado y con una vista previa en el navegador (`npm run email:preview`).
 
-## 20. Despliegue en Coolify
+**Al desplegar** se elige un proveedor real de emails (TEC-05). Los envíos se hacen desde suscriptores, con reintentos, y los fallos quedan registrados. Mientras no haya despliegue, el MVP0 no envía ningún email real.
 
-| Servicio | Imagen | Expuesto | Notas |
-|---|---|---|---|
-| `storefront` | Dockerfile del storefront | Sí, por el proxy | Next.js en modo `standalone`. |
-| `medusa-server` | Dockerfile del backend | Sí, por el proxy | API, panel y webhooks. |
-| `medusa-worker` | Misma imagen del backend | No | Jobs y suscriptores. |
-| `postgres` | Base de datos de Coolify | No | Sin puertos publicados. |
-| `redis` | Base de datos de Coolify | No | Sin puertos publicados. |
+## 20. Entorno local de desarrollo
 
-**Entornos**
+### 20.1 Requisitos
 
-| Entorno | Propósito | Mercado Pago |
+Node.js 22.22 o superior, Docker con Compose, Git y el gestor de paquetes del proyecto (npm).
+
+### 20.2 Servicios
+
+`docker-compose.yml` levanta solo PostgreSQL y Redis:
+
+- Puertos publicados únicamente en `127.0.0.1`, para que no sean accesibles desde la red local.
+- Volúmenes con nombre para conservar los datos entre reinicios.
+- Healthchecks, para que el backend arranque cuando ambos estén listos.
+
+Backend y storefront corren en la máquina, con recarga automática.
+
+### 20.3 Comandos
+
+Los nombres exactos se fijan en HU-01.
+
+```
+docker compose up -d        # PostgreSQL y Redis
+npm install
+npm run setup:store         # configuración base (idempotente)
+npm run dev                 # backend en :9000 y storefront en :3000
+npm run check               # lint, tipos, pruebas y build
+docker compose down -v      # destruye los datos y reinicia desde cero
+```
+
+### 20.4 Datos de desarrollo
+
+- Son descartables y no incluyen datos reales de clientes.
+- No se promueven a un entorno desplegado. Al desplegar se carga el catálogo real.
+- Si algún día hiciera falta migrar datos, se hace con un script específico, que queda fuera de este alcance.
+
+### 20.5 Primer usuario
+
+Se crea con la CLI de Medusa. **[Verificar]** el comando exacto. No hay credenciales por defecto compartidas.
+
+### 20.6 Secretos locales
+
+- `.env` no se versiona. `.env.example` sí, sin valores reales.
+- `JWT_SECRET`, `COOKIE_SECRET` y `PROOFS_URL_SIGNING_SECRET` se generan de forma aleatoria en cada máquina.
+- Un hook de Git bloquea el commit de archivos `.env` y de patrones de claves (SEC-10).
+- Las credenciales de prueba de Mercado Pago se guardan en el gestor de contraseñas.
+
+### 20.7 Verificaciones
+
+`npm run check` ejecuta lint, tipos, pruebas, build y auditoría de dependencias. Un hook de pre-push ejecuta las verificaciones rápidas (TEC-01).
+
+## 21. Etapa de despliegue (posterior al MVP0)
+
+Nada de esta sección se construye en el MVP0. Describe qué se decide más adelante y qué se prepara desde ahora para que desplegar sea simple. El detalle de tickets está en `planning.md`, sección "Etapa de despliegue".
+
+### 21.1 Qué se decide entonces
+
+| Tema | Opciones conocidas | Nota |
 |---|---|---|
-| Desarrollo | Local con `docker compose` | Credenciales de prueba |
-| Staging | Proyecto separado en Coolify | Credenciales de prueba |
-| Producción | Proyecto separado en Coolify | Credenciales de producción |
+| Plataforma de despliegue | Previsto: Coolify sobre una VPS. Se reconfirma. | Si se elige una VPS, aplican SEC-01 a SEC-05. |
+| Almacenamiento externo | Cloudflare R2, Backblaze B2, Tigris u otro compatible con S3 | R2 requiere un medio de pago. Se prueba la compatibilidad con el proveedor `file-s3` de Medusa y con el driver S3 antes de adoptarlo. |
+| Emails | A elegir | Dominio de envío con SPF, DKIM y DMARC. |
+| Dominio y DNS | A definir con el dueño | Para `.com.ar`, NIC Argentina pide CUIT o CUIL y Clave Fiscal. |
+| Acceso al panel de la plataforma | VPN o lista de IPs permitidas | Ver SEC-02. El plan gratuito de Tailscale es solo para uso no comercial. |
+| Respaldos | Bucket exclusivo, cifrado | Ver SEC-90. |
+| Integración continua | La del repositorio elegido | Ver TEC-06. |
 
-**Proceso de despliegue**
-1. CI construye y prueba en cada pull request.
-2. Al integrar en la rama principal, Coolify despliega en staging.
-3. Producción se despliega de forma manual, desde una versión etiquetada.
-4. Las migraciones corren antes de levantar la nueva versión.
-5. Cada despliegue conserva la imagen anterior para volver atrás.
+### 21.2 Qué cambia respecto del entorno local
 
-**Recursos:** para empezar, una VPS de 4 GB de RAM es un mínimo razonable y 8 GB da margen para storefront, backend, worker y bases en el mismo servidor. Son cifras orientativas, a validar con mediciones en staging.
+| Aspecto | Local | Despliegue |
+|---|---|---|
+| URLs y CORS | `localhost` | Dominios exactos |
+| Transporte | HTTP | HTTPS con HSTS y cookies `Secure` |
+| Imágenes | Proveedor `file-local` | Proveedor `file-s3` con dominio propio |
+| Comprobantes | Driver local | Driver S3 con enlaces firmados |
+| Emails | Proveedor local (registra en terminal) | Proveedor real |
+| Mercado Pago | Credenciales de prueba, conciliación como mecanismo principal | Credenciales de producción y webhook público verificado |
+| Procesos de Medusa | Modo compartido | Servidor y worker separados |
+| Base de datos y Redis | Docker local | Servicio con respaldos |
+| Secretos | `.env` local | Variables de la plataforma, distintas por entorno |
 
-## 21. Observabilidad
+### 21.3 Qué se prepara desde ahora
 
-- Logs estructurados en JSON, con identificador de solicitud y de pedido, sin datos personales.
-- Métricas: pedidos por hora, pagos aprobados y rechazados, comprobantes pendientes, errores 5xx.
-- Monitoreo externo de disponibilidad del storefront y del backend.
-- Alertas definidas en `seguridad.md`, SEC-96.
+- Todas las URLs, dominios, rutas y claves salen de variables de entorno (sección 17.5).
+- Almacenamiento y notificaciones son intercambiables, con pruebas de contrato.
+- El build de producción de backend y storefront se verifica en local (HU-46).
+- Las URLs de Mercado Pago (`notification_url` y `back_urls`) se configuran por variables.
+- Antes de desplegar se prueba en local la separación en servidor y worker (TEC-03).
+- El código no asume nada del sistema operativo local (rutas con `path`, sin separadores fijos).
 
-## 22. Pruebas
+### 21.4 Plan previsto, a reconfirmar
+
+Es el plan de la versión anterior de este documento, que se mantiene solo como referencia.
+
+- Cinco servicios en un mismo proyecto de Coolify: storefront, servidor de Medusa, worker de Medusa (misma imagen del backend), PostgreSQL y Redis.
+- Entornos de staging y producción separados, con secretos distintos.
+- Proceso: integración continua, despliegue automático a staging, producción de forma manual desde una versión etiquetada, migraciones antes de arrancar y la imagen anterior conservada para volver atrás.
+- Recursos orientativos: entre 4 y 8 GB de RAM para todo en un solo servidor, a validar con mediciones.
+
+## 22. Observabilidad
+
+**En local (MVP0):**
+
+- Logs estructurados en JSON en la terminal, con identificador de solicitud y de pedido, sin datos personales (SEC-70).
+- Nivel de log configurable por variable de entorno.
+- Registro de los eventos de seguridad de SEC-95.
+
+**Al desplegar:** métricas (pedidos por hora, pagos aprobados y rechazados, comprobantes pendientes, errores 5xx), monitoreo externo de disponibilidad y alertas (SEC-96). Ver HU-52.
+
+## 23. Pruebas
+
+Todas las pruebas se ejecutan en local.
 
 | Tipo | Alcance | Herramienta |
 |---|---|---|
 | Unitarias | Validaciones, derivación de estados, cálculo de límites | Vitest o Jest |
-| Integración | Rutas propias, hook de descuento, webhook, permisos por rol | Pruebas de integración de Medusa |
+| Integración | Rutas propias, hook de descuento, webhook simulado, permisos por rol, contrato del almacenamiento | Pruebas de integración de Medusa |
 | Extremo a extremo | Compra con tarjeta (sandbox), compra por transferencia, venta en el local, vencimiento, rechazo | Playwright |
 | Concurrencia | Compras simultáneas de la última unidad | k6 |
+| Build de producción | Backend y storefront con `NODE_ENV=production` ejecutándose en local | Scripts |
 
-Criterios mínimos antes de producción: ningún stock negativo, ningún descuento de transferencia cobrado con tarjeta, ningún webhook procesado dos veces y todos los controles del checklist de `seguridad.md`.
+Criterios mínimos antes de dar el MVP0 por terminado: ningún stock negativo, ningún descuento de transferencia cobrado con tarjeta, ningún pago procesado dos veces y el checklist 6.1 de `seguridad.md`.
 
-## 23. Seguridad
+**Pendiente para el despliegue:** la verificación con notificaciones reales de Mercado Pago (HU-51) y el checklist 6.2 de `seguridad.md`.
 
-El modelo de amenazas, los controles y el checklist de lanzamiento están en `seguridad.md`. Resumen de los controles que más condicionan esta arquitectura:
+## 24. Seguridad
 
-- Panel de Coolify no expuesto a internet y actualizado (SEC-02, SEC-03).
-- Bases de datos sin puertos publicados (SEC-04).
-- Firma del webhook y verificación del monto con la API de Mercado Pago (SEC-32).
-- Token de acceso al pedido reutilizable, guardado como hash (SEC-24).
-- Denegación por defecto para el rol vendedor (SEC-21).
-- Límites contra pedidos falsos (SEC-40).
+El modelo de amenazas, los controles y los checklists están en `seguridad.md`. Cada control indica si aplica en el desarrollo local o recién al desplegar.
 
-## 24. Decisiones pendientes
+**Aplican en el MVP0 (local):** SEC-04 (puertos solo en localhost), SEC-06 (máquina de desarrollo), SEC-10 (secretos), SEC-16 (CORS), SEC-17 (límites en la aplicación), SEC-20 a SEC-24 (cuentas, roles y acceso al pedido), SEC-30 a SEC-33 (precios, descuento y pagos), SEC-40 (abuso de stock), SEC-50 y SEC-51 (archivos), SEC-60 y SEC-61 (storefront), SEC-70 (datos personales), SEC-80 y SEC-81 (dependencias y plugins) y SEC-95 (registro de eventos).
+
+**Se activan al desplegar:** SEC-01 a SEC-03 y SEC-05 (servidor y plataforma), SEC-11 (rotación), SEC-15 (HTTPS), SEC-52 (buckets), SEC-71 (retención), SEC-90 (respaldos) y SEC-96 (alertas).
+
+## 25. Decisiones pendientes
 
 | Tema | Estado | Se resuelve en |
 |---|---|---|
 | Plugin de Mercado Pago o proveedor propio | Abierto | SP-02 |
 | Momento de creación del pedido con Mercado Pago | Recomendación: opción A | SP-02 |
-| Roles nativos de Medusa o guard propio | **Cerrado:** guard propio | SP-01 |
-| Proveedor de email | Abierto | TEC-02 |
-| Condición fiscal y configuración de impuestos | Abierto | Dueño del comercio |
-| Dominio | Abierto | Dueño del comercio |
-| Migración futura a MinIO | Planificada si hace falta | Fuera del MVP0 |
+| URLs de retorno en local y túnel temporal | Abierto | SP-02 |
+| Roles nativos de Medusa o guard propio | Abierto | SP-01 |
+| Condición fiscal y configuración de impuestos | Abierto | Dueño del comercio, antes de S1 |
+| Plataforma de despliegue | Previsto Coolify, a reconfirmar | Etapa de despliegue |
+| Almacenamiento externo | Abierto | Etapa de despliegue |
+| Proveedor de email real | Abierto | Etapa de despliegue |
+| Dominio | Abierto | Etapa de despliegue |
 
-Decisiones cerradas: Medusa 2.22, PostgreSQL, Coolify para todos los servicios, Cloudflare R2 con dominio propio, Next.js 16.4.3 con el stack definido, transferencias sobre el proveedor manual de Medusa.
+**Decisiones cerradas:** Medusa 2.22, PostgreSQL, Next.js 16.4.3 con el stack definido, transferencias sobre el proveedor manual de Medusa y desarrollo local primero, sin despliegue.
 
-## 25. Historial de cambios
+## 26. Historial de cambios
 
 | Fecha | Versión | Cambio |
 |---|---|---|
 | 2026-10-23 | 1 | Primera versión. |
 | 2026-10-23 | 1.1 | Stack del storefront, R2, comprobantes privados y Coolify. |
 | 2026-10-23 | 2 | Revisión completa: transferencias sobre el proveedor manual, estados derivados de Medusa, configuración en `store.metadata`, descuento con código interno y una sola fuente, configuración base de Medusa, storefront y punto de venta redefinidos, todo en Coolify, endpoints corregidos, variables completas y vínculo con `seguridad.md`. |
-| 2026-10-23 | 2.1 | Resultado de SP-01: puntos **[Verificar]** resueltos con evidencia en `sp-01-medusa.md`. Roles: guard propio. Se documenta que `GET /store/orders/:id` no tiene autenticación y se bloquea. |
+| 2026-10-23 | 3 | Alcance reducido a desarrollo local, sin despliegue en ninguna plataforma. Proveedores locales de archivos y notificaciones, comprobantes con driver local intercambiable, estrategia de pruebas de Mercado Pago sin URL pública, entorno local con Docker Compose, y la etapa de despliegue pasa a ser una sección de preparación. |
