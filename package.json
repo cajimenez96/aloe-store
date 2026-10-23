@@ -16,7 +16,8 @@
     "check": "bash scripts/check.sh",
     "check:fast": "bash scripts/check.sh --fast",
     "db:migrate": "npm run db:migrate --workspace @aloe/backend",
-    "setup:store": "npm run setup:store --workspace @aloe/backend"
+    "setup:store": "npm run setup:store --workspace @aloe/backend",
+    "user:role": "npm run user:role --workspace @aloe/backend --"
   },
   "overrides": {
     "tsconfig-paths": "^4.2.0",
