@@ -60,19 +60,19 @@ export function VariantSelector({ options, variants, selection, onChange }: Vari
                       "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-pill border px-4 py-2 text-sm",
                       "border-hairline bg-canvas-light text-ink",
                       "peer-checked:border-ink peer-checked:bg-ink peer-checked:text-white",
+                      // La muestra necesita borde claro sobre el fondo negro del valor elegido.
+                      "peer-checked:[&_[data-swatch]]:border-white",
                       "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink",
                       "peer-disabled:cursor-not-allowed peer-disabled:opacity-40",
-                      available && !inStock && "text-shade-50 line-through"
+                      available && !inStock && "text-shade-50"
                     )}
                   >
                     {isColorOption(option.title) ? (
-                      <ColorSwatch name={item.value} hex={item.hex} />
+                      <ColorSwatch name={item.value} hex={item.hex} struck={available && !inStock} />
                     ) : (
-                      item.value
+                      <span className={cn(available && !inStock && "line-through")}>{item.value}</span>
                     )}
-                    {available && !inStock && (
-                      <span className="text-xs no-underline">(agotado)</span>
-                    )}
+                    {available && !inStock && <span className="text-xs">(agotado)</span>}
                   </label>
                 </div>
               )

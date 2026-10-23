@@ -2,6 +2,7 @@ import { cacheLife } from "next/cache"
 import { PAGE_SIZE } from "./catalog"
 import { getEnv } from "./env"
 import { getSdk } from "./medusa"
+import type { ColorEntry } from "./product"
 
 export type CategoryNode = {
   id: string
@@ -94,4 +95,32 @@ export async function listProducts(options: {
       "id,title,handle,thumbnail,*variants,*variants.calculated_price,+variants.inventory_quantity",
   })
   return { products, count }
+}
+
+/** Producto publicado por handle, con opciones, variantes, precios y stock. */
+export async function getProductByHandle(handle: string, regionId: string) {
+  const { products } = await getSdk().store.product.list({
+    handle,
+    region_id: regionId,
+    limit: 1,
+    fields:
+      "id,title,handle,description,thumbnail,*images,*options,*options.values,*variants,*variants.options,*variants.calculated_price,+variants.inventory_quantity",
+  })
+  return products[0] ?? null
+}
+
+/** Muestras de color del producto. Sin ellas, los colores se ven solo con su nombre. */
+export async function getProductColors(productId: string): Promise<ColorEntry[]> {
+  const { backendUrl, publishableKey } = getEnv()
+  try {
+    const response = await fetch(
+      `${backendUrl}/store/product-colors?product_id=${encodeURIComponent(productId)}`,
+      { headers: { "x-publishable-api-key": publishableKey } }
+    )
+    if (!response.ok) return []
+    const { colors } = (await response.json()) as { colors?: ColorEntry[] }
+    return Array.isArray(colors) ? colors : []
+  } catch {
+    return []
+  }
 }
