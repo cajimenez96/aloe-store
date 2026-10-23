@@ -32,10 +32,13 @@ docker compose up -d --wait    # PostgreSQL y Redis, solo en 127.0.0.1
 Crear `apps/backend/.env` y `apps/storefront/.env.local` con las variables de abajo, y luego:
 
 ```bash
-cd apps/backend && npx medusa db:migrate && cd ../..
-npx --workspace @aloe/backend medusa user -e <email> -p <contraseña>   # primer usuario administrador
+npm run db:migrate             # crea las tablas
+npm run setup:store            # configuración base de Argentina (idempotente)
+npx -w @aloe/backend medusa user -e <email> -p <contraseña>   # primer usuario administrador
 npm run dev                    # backend en :9000 y storefront en :3000
 ```
+
+`npm run setup:store` crea los canales "Web" y "Local", la región Argentina en ARS con precios con impuestos incluidos, la ubicación de stock "Local", las opciones de envío "Retiro en el local" y "Envío a domicilio", el proveedor de pago manual y una clave publicable asociada a "Web". Al terminar imprime esa clave para `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`. Se puede ejecutar las veces que haga falta. No carga productos ni categorías.
 
 El panel queda en `http://localhost:9000/app`. Backend y storefront escuchan solo en `127.0.0.1`.
 
@@ -47,7 +50,7 @@ docker compose start
 docker compose down -v         # DESTRUYE los datos y reinicia desde cero
 ```
 
-Después de `down -v` hay que volver a migrar y a crear el usuario.
+Después de `down -v` hay que volver a migrar, a ejecutar `npm run setup:store` y a crear el usuario.
 
 ### Si un puerto está ocupado
 
