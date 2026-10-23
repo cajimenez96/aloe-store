@@ -24,9 +24,10 @@ S8 (HU-38) Roles con permisos minimos: guard propio con denegacion por defecto, 
 - T5 | S2 | - | [ ] | HU-07 | bloqueada por pregunta 2 (interin: una sola subcategoria). Nota SP-01: `is_active` de las categorias vale false por defecto.
 - T6 | S4 | - | [ ] | HU-09
 - T7 | S7 | - | [ ] | HU-31
-- T8 | S8 | - | [ ] | HU-38
+- T8 | S8 | inline | [~] | HU-38: `apps/backend/src/lib/roles/` (politica pura + guard) registrado con matcher `'/admin*'`; `npm run user:role`. 31 pruebas unitarias (politica, guard y una prueba que recorre TODAS las rutas de /admin de Medusa y propias, por rol). Evidencia en vivo (base descartable, 4 usuarios): vendedor y usuario sin rol solo leen users/me, products, orders, inventory-items, stock-locations; todo lo demas 403 ROLE_NOT_ALLOWED; admin: 403 al modificar regions y api-keys; sin sesion: 401; rechazos registrados como `role_denied`. Hallazgos propios corregidos: (1) un matcher RegExp sin metodo no se ejecuta en Medusa 2.22 y dejo pasar al vendedor (la matriz en vivo lo detecto); (2) un admin podia ascenderse editando su metadata en POST /admin/users/:id: ahora los usuarios solo los modifica el superadmin. PENDIENTE: verificacion independiente (Risk: item 2), experiencia del vendedor en el panel con un navegador (el panel puede llamar rutas no permitidas), HU-38 AC `Solo el superadmin ... claves de API` verificado por API.
 
 ## Log
 
 L1: Se elimino el seed de la starter (`initial-data-seed.ts`, `region-store-policies`, `seed-demo-products.ts`) y las rutas de ejemplo `/store/custom` y `/admin/custom`. Las bases que ya tienen datos de demostracion (por ejemplo la local de desarrollo) los conservan hasta `docker compose down -v`.
 L2: `medusa exec` acepta un script fuera de `src/` (`../../scripts/setup-store.ts`). Medusa carga `apps/backend/.env` aunque se pase otra `DATABASE_URL`: las variables ya exportadas tienen prioridad, pero las que faltan se completan desde el `.env` (cuidado al probar contra bases descartables).
+L3: Medusa 2.22 define `policies` por ruta pero depende del modulo RBAC con licencia. Las claves de API secretas actuan como actor `api-key` y el guard no las restringe: solo las crea el superadmin (SEC-22).

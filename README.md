@@ -34,13 +34,18 @@ Crear `apps/backend/.env` y `apps/storefront/.env.local` con las variables de ab
 ```bash
 npm run db:migrate             # crea las tablas
 npm run setup:store            # configuración base de Argentina (idempotente)
-npx -w @aloe/backend medusa user -e <email> -p <contraseña>   # primer usuario administrador
+npx -w @aloe/backend medusa user -e <email> -p <contraseña>   # primer usuario
+npm run user:role -- <email> superadmin                        # le da el rol de superadmin
 npm run dev                    # backend en :9000 y storefront en :3000
 ```
 
 `npm run setup:store` crea los canales "Web" y "Local", la región Argentina en ARS con precios con impuestos incluidos, la ubicación de stock "Local", las opciones de envío "Retiro en el local" y "Envío a domicilio", el proveedor de pago manual y una clave publicable asociada a "Web". Al terminar imprime esa clave para `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`. Se puede ejecutar las veces que haga falta. No carga productos ni categorías.
 
 El panel queda en `http://localhost:9000/app`. Backend y storefront escuchan solo en `127.0.0.1`.
+
+### Roles
+
+El rol de cada usuario se guarda en `metadata.role` y se asigna con `npm run user:role -- <email> <superadmin|admin|vendedor>`. **Un usuario sin rol es vendedor**, el perfil más restringido: puede consultar productos, stock y pedidos, y registrar ventas en el local, y nada más. Por eso el primer usuario necesita el paso `user:role` para poder administrar. El admin puede leer, pero no modificar, regiones, impuestos, proveedores de pago y claves de API: eso es del superadmin. Toda ruta nueva de `/admin` queda denegada al vendedor hasta que se habilite en `apps/backend/src/lib/roles/policy.ts`. Los accesos rechazados se registran en el log como `role_denied`.
 
 ### Detener y reiniciar
 

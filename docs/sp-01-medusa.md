@@ -195,3 +195,12 @@ SEC-50 pide JPG, PNG o WebP de hasta 5 MB, validando el contenido real. Hace fal
 **Fuente:** prueba real.
 
 Con `MEDUSA_BACKEND_URL=http://localhost:9100`, la subida devolvió `http://localhost:9000/static/...`. El proveedor `file-local` toma la base de su opción `backend_url`, que por defecto es `http://localhost:9000`. Para cumplir HU-05 ("la URL base sale de `MEDUSA_BACKEND_URL`") hay que registrar el módulo de archivos en `medusa-config.ts` con `backend_url: process.env.MEDUSA_BACKEND_URL`.
+
+## 18. Middlewares globales de `/admin`
+
+**Fuente:** prueba real durante HU-38.
+
+- Un middleware definido en `defineMiddlewares` con `matcher` de **expresión regular** y sin `method` **no se ejecuta**: Medusa 2.22 lo acepta sin avisar y la solicitud pasa de largo. Con un matcher de texto con comodín (`'/admin*'`) sí se ejecuta. La primera versión del guard de roles usaba una expresión regular y dejó pasar a un vendedor a `/admin/users` y a crear una clave de API; la matriz de rutas por rol lo detectó antes de cualquier uso real.
+- El middleware se ejecuta antes que los handlers de las rutas y se le puede anteponer `authenticate("user", ["session", "bearer", "api-key"], { allowUnauthenticated: true })` para tener `auth_context` sin depender del orden interno.
+- Medusa trae un mecanismo de políticas por ruta (`policies`), pero depende del módulo RBAC con licencia (punto 1) y no se usa.
+

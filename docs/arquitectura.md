@@ -565,6 +565,7 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 
 - **[Confirmado]** los roles y políticas nativos (`@medusajs/rbac`) son un módulo con licencia y están desactivados por defecto. No se usan en el MVP0.
 - **Decisión:** guard propio sobre `/admin/*` con lista de rutas permitidas para el vendedor y **denegación por defecto**.
+- **Implementación [Confirmado]:** el rol vive en `user.metadata.role` (`superadmin`, `admin` o `vendedor`) y se asigna con `npm run user:role`. Un usuario sin rol, o con un valor desconocido, es vendedor. El middleware está en `apps/backend/src/lib/roles/` y se registra con el matcher de texto `'/admin*'`. Responde `ROLE_NOT_ALLOWED` (403) y registra el rechazo (SEC-95). El superadmin hace todo; el admin lee, pero no modifica, regiones, impuestos, proveedores de pago, claves de API ni la tienda de Medusa (SEC-22); el vendedor solo consulta productos, stock, pedidos y comprobantes, y registra ventas.
 - En ambos casos, cada ruta del admin tiene una prueba automatizada por rol.
 - **Limitación conocida:** el menú del panel puede mostrar secciones que el usuario no puede usar. Se documenta para el dueño y se evalúa ocultarlas con extensiones del panel.
 
