@@ -1,7 +1,6 @@
+import { redirect } from "next/navigation"
+
+// La portada es el catálogo hasta que el comercio defina otra.
 export default function Home() {
-  return (
-    <main className="flex min-h-screen items-center justify-center p-8">
-      <h1 className="font-display text-5xl">Aloe</h1>
-    </main>
-  )
+  redirect("/productos")
 }

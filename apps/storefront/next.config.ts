@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 
 // Host de las imágenes de producto, por ejemplo "localhost:9000" (arquitectura.md, 17.2).
 const imagesHost = process.env.NEXT_PUBLIC_IMAGES_HOST;
-const isDevelopment = process.env.NODE_ENV !== "production";
+// Solo un host local (desarrollo o el build de producción probado en la máquina)
+// necesita http y saltear la protección contra IP privadas. Un host real usa https.
+const isLocalImagesHost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(imagesHost ?? "");
 
 function imagePatterns(): NonNullable<NextConfig["images"]>["remotePatterns"] {
   if (!imagesHost) {
@@ -11,7 +13,7 @@ function imagePatterns(): NonNullable<NextConfig["images"]>["remotePatterns"] {
   const [hostname, port = ""] = imagesHost.split(":");
   return [
     {
-      protocol: isDevelopment ? "http" : "https",
+      protocol: isLocalImagesHost ? "http" : "https",
       hostname,
       port,
       pathname: "/static/**",
@@ -38,8 +40,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: imagePatterns(),
     // Next.js rechaza optimizar imágenes que resuelven a una IP privada, como
-    // localhost. Solo se permite en desarrollo (sp-01-medusa.md, punto 16).
-    dangerouslyAllowLocalIP: isDevelopment,
+    // localhost. Solo se permite cuando el host de imágenes es local
+    // (sp-01-medusa.md, punto 16): con un dominio real no se activa.
+    dangerouslyAllowLocalIP: isLocalImagesHost,
   },
   cacheComponents: true,
   partialPrefetching: true,
