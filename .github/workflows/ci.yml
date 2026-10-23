@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @dtc/backend lint
+      # Sin pruebas todavía: --passWithNoTests se quita cuando exista la primera.
+      - run: pnpm --filter @dtc/backend run test:unit --passWithNoTests
+      - run: pnpm --filter @dtc/backend build
+
+  storefront:
+    runs-on: ubuntu-latest
+    env:
+      # Valores de relleno: el build no consulta el backend.
+      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_ci_placeholder
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @dtc/storefront lint
+      - run: pnpm --filter @dtc/storefront exec tsc --noEmit
+      - run: pnpm --filter @dtc/storefront build
+
+  docker-image:
+    # Al integrar en main se construye la imagen de producción del backend (sin publicarla).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, storefront]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          target: prod
+          push: false
+          tags: aloe-backend:${{ github.sha }}

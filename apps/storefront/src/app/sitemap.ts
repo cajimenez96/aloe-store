@@ -14,6 +14,9 @@ const STATIC_PATHS = [
 ]
 const PAGE_SIZE = 200
 
+// Consulta el backend en cada solicitud: el build (y el CI) no requiere un backend vivo.
+export const dynamic = "force-dynamic"
+
 type Page<T> = { items: T[]; count: number }
 
 async function listAll<T>(fetchPage: (offset: number) => Promise<Page<T>>) {

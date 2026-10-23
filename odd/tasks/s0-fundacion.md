@@ -37,7 +37,7 @@ Decisiones del usuario: commits convencionales con detalle en espanol, sin HU-ID
 
 - T1 | S1 | inline | [x] | scaffold Medusa 2.22 + Docker compose + .env.example + README | commits: a924bb8, 4215309. Evidencia: `docker compose down -v && up -d --build` desde cero deja los 3 servicios healthy, GET /health 200 y /app 200; redis y postgres healthy antes de iniciar el backend; lint backend 0 errores, storefront 0 errores (28 warnings del starter), tsc storefront limpio.
 - T2 | S4 | inline | [x] | spike SP-02 en `docs/sp-02-medusa.md` (6 puntos respondidos con prueba real, codigo instalado y docs; cambios a arquitectura.md propuestos, no aplicados; pendiente aceptacion del PO) | commit: ver git log (docs: se documenta la verificacion tecnica de Medusa)
-- T3 | S3 | inline | [ ] | CI (GitHub Actions) | commit: -
+- T3 | S3 | inline | [~] | CI (GitHub Actions) en .github/workflows/ci.yml. Cada paso verificado en local (backend lint/test:unit --passWithNoTests/build, storefront lint/tsc/build sin backend, imagen prod construida y /health 200 sobre base limpia). PENDIENTE: ejecutar el workflow en GitHub (no hay remoto) y activar proteccion de rama exigiendo los jobs backend y storefront (S3.2) | commit: ver git log (ci:)
 - T4 | S2 | inline | [ ] | file-s3 contra R2 (bloqueada por credenciales) | commit: -
 
 ## Log
@@ -46,4 +46,5 @@ L1 (2026-10-23, usuario): "Si, me parece perfecto. Ahora que entendemos de que v
 L2 (2026-10-23, usuario): "Utilicemos conventional commits pero el detalle debe ser en espanol, por ejemplo: 'feat: se agrega filtro...'"
 L3 (2026-10-23, usuario): "De momento no tengo coolify, la idea es aplicarlo luego"
 L5: Causa raiz del fallo de migraciones en Docker: Medusa (`loadDatabaseConfig`) fuerza SSL si el host de DATABASE_URL no es localhost/127.0.0.1 ni trae sslmode=disable; el Postgres del contenedor no tiene SSL y knex falla en silencio (propagateCreateError=false). Solucion: `?sslmode=disable` en la URL de compose. Tambien: el volumen solo montaba src, por eso se monta medusa-config.ts.
+L6: El seed inicial de la starter (`src/migration-scripts/initial-data-seed.ts`) crea datos demo (region Europa, EUR/USD, etc.) y corre al migrar tambien en produccion. Hay que reemplazarlo por un seed propio para Argentina (ARS, ubicacion de stock, canal, opciones de envio, clave publicable) antes de S1/S2. Pendiente de decision de alcance.
 L4: Scaffold generado con create-medusa-app (Medusa 2.22.0, storefront con Next 16.3.8; arquitectura fija 16.4.3, que existe en npm). Puertos del host ocupados por otros contenedores del usuario: 5433, 6379, 9000. Se usaran 5434 (postgres), 6380 (redis), 9100 (backend).
