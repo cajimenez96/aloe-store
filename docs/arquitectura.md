@@ -359,6 +359,7 @@ La aplicación y quita de promociones no se expone al cliente. La hace el backen
 |---|---|---|---|
 | POST | `/store/checkout/:cart_id/payment-method` | Clave publicable | Elegir tarjeta o transferencia. Aplica o quita la promoción e inicia la sesión de pago. |
 | GET | `/store/checkout/bank-account` | Clave publicable | Datos bancarios para mostrar en el checkout. |
+| GET | `/store/checkout/transfer-discount` | Clave publicable | Porcentaje de descuento por transferencia, leído de la promoción de Medusa, para mostrar el precio en el listado, el detalle y el carrito. Devuelve solo `{ "percent": 10 }`: el código de la promoción nunca sale. **[Confirmado en HU-13]** |
 | GET | `/store/order-access/:id` | Token del pedido | Detalle del pedido para el cliente invitado. |
 | POST | `/store/order-access/:id/transfer-proofs` | Token del pedido | Subir comprobante. |
 | GET | `/store/order-access/:id/transfer-proofs` | Token del pedido | Estado del último comprobante y motivo de rechazo. |
@@ -547,6 +548,7 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 | `REJECTION_REASON_REQUIRED` | 422 | Motivo de rechazo inválido. | Escribir un motivo de 10 a 300 caracteres. |
 | `SALE_ITEMS_EMPTY` | 422 | Venta sin productos. | Agregar al menos un producto. |
 | `SETTING_INVALID` | 422 | Valor de configuración inválido. | Corregir el campo indicado. |
+| `STORE_UNAVAILABLE` | 503 | La tienda no pudo consultar al servidor (red caída o error del servidor). Es un aviso de la tienda, no de la API. | Reintentar en unos segundos. |
 | `COLOR_INVALID` | 422 | El color no tiene el formato `#RRGGBB`, o el valor no es de la opción Color. | Corregir el color. |
 | `ROLE_NOT_ALLOWED` | 403 | El rol no tiene permiso para la acción. | Pedir el permiso al admin. |
 | `WEBHOOK_SIGNATURE_INVALID` | 401 | Firma de Mercado Pago inválida. | No aplica al usuario. Se registra y se descarta. |
@@ -586,7 +588,7 @@ Los datos de desarrollo son descartables y **nunca incluyen datos reales de clie
 - Regla: **nada privado se guarda en `static/`**.
 - Se validan formato (JPG, PNG o WebP), contenido real del archivo y tamaño máximo de 5 MB (SEC-50). **[Confirmado]** Medusa no valida nada al subir: aceptó un texto con extensión `.png`, un HTML, un `.exe` y un archivo de 6 MB. Hace falta un middleware propio (HU-05).
 - **[Confirmado]** el proveedor local arma las URLs con su propia opción `backend_url` (por defecto `http://localhost:9000/static`) y **no** lee `MEDUSA_BACKEND_URL`. `medusa-config.ts` la define como `${MEDUSA_BACKEND_URL}/static` (HU-05).
-- El storefront usa `next/image`. **[Confirmado]** Next.js 16.4.3 rechaza optimizar imágenes de `localhost` (error "resolved to private IP"). Se resuelve con `images.dangerouslyAllowLocalIP: true` acotado a desarrollo, más `remotePatterns` con el host y la ruta `/static/**` tomados de `NEXT_PUBLIC_IMAGES_HOST`. Nunca se activa en producción (HU-05, HU-12).
+- El storefront usa `next/image`. **[Confirmado]** Next.js 16.4.3 rechaza optimizar imágenes de `localhost` (error "resolved to private IP"). Se resuelve con `images.dangerouslyAllowLocalIP: true` y `remotePatterns` con el host y la ruta `/static/**` tomados de `NEXT_PUBLIC_IMAGES_HOST`, **solo cuando ese host es `localhost` o `127.0.0.1`** (también en el build de producción probado en la máquina). Con un dominio real no se activa y se exige https (HU-05, HU-12, HU-13).
 - Las URLs guardadas en local (`http://localhost:9000/static/...`) no sirven fuera de la máquina. Por eso el catálogo de prueba no se promueve a un entorno desplegado (sección 20.4).
 
 ### 17.3 Comprobantes [Propio]

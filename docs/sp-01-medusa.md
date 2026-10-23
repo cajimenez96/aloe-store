@@ -188,7 +188,7 @@ SEC-50 pide JPG, PNG o WebP de hasta 5 MB, validando el contenido real. Hace fal
 
 - Con `images.remotePatterns` apuntando a `localhost`, el optimizador responde 400: *"upstream image hostname resolved to private IP"*.
 - Con `images.dangerouslyAllowLocalIP: true` responde 200 y entrega la imagen optimizada.
-- Esa opción es una protección contra SSRF que se desactiva a propósito. Solo se activa en desarrollo (`NODE_ENV !== "production"`), con `remotePatterns` acotado al host y a la ruta `/static/**` que salen de `NEXT_PUBLIC_IMAGES_HOST`. En un despliegue las imágenes salen de un dominio público y no hace falta.
+- Esa opción es una protección contra SSRF que se desactiva a propósito. Se activa solo cuando `NEXT_PUBLIC_IMAGES_HOST` es `localhost` o `127.0.0.1`, con `remotePatterns` acotado al host y a la ruta `/static/**`. No depende de `NODE_ENV`: el build de producción (`next start`) que se prueba en local también tiene las imágenes en `localhost` (HU-46). Con un dominio público no se activa y se exige https.
 
 ## 17. URL de las imágenes con el proveedor local
 
