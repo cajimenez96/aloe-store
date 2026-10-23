@@ -47,6 +47,8 @@ El panel queda en `http://localhost:9000/app`. Backend y storefront escuchan sol
 
 El rol de cada usuario se guarda en `metadata.role` y se asigna con `npm run user:role -- <email> <superadmin|admin|vendedor>`. **Un usuario sin rol es vendedor**, el perfil más restringido: puede consultar productos, stock y pedidos, y registrar ventas en el local, y nada más. Por eso el primer usuario necesita el paso `user:role` para poder administrar. El admin puede leer, pero no modificar, regiones, impuestos, proveedores de pago y claves de API: eso es del superadmin. Toda ruta nueva de `/admin` queda denegada al vendedor hasta que se habilite en `apps/backend/src/lib/roles/policy.ts`. Los accesos rechazados se registran en el log como `role_denied`.
 
+Al vendedor se le oculta la `metadata` de la tienda (ahí están el CBU y el código de la promoción). El menú del panel de Medusa muestra todas las secciones aunque el vendedor no pueda usarlas: al entrar en una no permitida el panel avisa que no tiene permiso. Las claves de API secretas funcionan como superadmin: solo el superadmin las crea.
+
 ### Detener y reiniciar
 
 ```bash

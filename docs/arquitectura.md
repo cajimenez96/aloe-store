@@ -567,7 +567,8 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 - **Decisión:** guard propio sobre `/admin/*` con lista de rutas permitidas para el vendedor y **denegación por defecto**.
 - **Implementación [Confirmado]:** el rol vive en `user.metadata.role` (`superadmin`, `admin` o `vendedor`) y se asigna con `npm run user:role`. Un usuario sin rol, o con un valor desconocido, es vendedor. El middleware está en `apps/backend/src/lib/roles/` y se registra con el matcher de texto `'/admin*'`. Responde `ROLE_NOT_ALLOWED` (403) y registra el rechazo (SEC-95). El superadmin hace todo; el admin lee, pero no modifica, regiones, impuestos, proveedores de pago, claves de API ni la tienda de Medusa (SEC-22); el vendedor solo consulta productos, stock, pedidos y comprobantes, y registra ventas.
 - En ambos casos, cada ruta del admin tiene una prueba automatizada por rol.
-- **Limitación conocida:** el menú del panel puede mostrar secciones que el usuario no puede usar. Se documenta para el dueño y se evalúa ocultarlas con extensiones del panel.
+- **Limitación conocida [Confirmado]:** el menú del panel muestra todas las secciones (clientes, promociones, listas de precios, botones de crear) aunque el vendedor no pueda usarlas; al entrar en una, el panel muestra un error de permiso. Se documenta para el dueño y se evalúa ocultarlas con extensiones del panel.
+- Para que el panel cargue, el vendedor puede **leer** `/admin/stores` (sin `metadata`, donde están el CBU y el código de la promoción), `/admin/layouts`, `/admin/regions`, `/admin/sales-channels` y `/admin/feature-flags`. `/admin/notifications` queda denegada porque los avisos futuros pueden contener enlaces con token.
 
 ## 17. Almacenamiento
 
