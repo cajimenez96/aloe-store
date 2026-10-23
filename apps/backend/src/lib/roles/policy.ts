@@ -30,6 +30,12 @@ export const VENDEDOR_ALLOWED: readonly Rule[] = [
   },
   // El panel pregunta por el usuario actual al cargar.
   { methods: ["GET"], path: /^\/admin\/users\/me$/ },
+  // Lectura mínima de configuración sin la cual el panel de Medusa no carga.
+  // La respuesta de /admin/stores se entrega sin `metadata` (ver guard.ts).
+  {
+    methods: ["GET"],
+    path: /^\/admin\/(stores|layouts|regions|sales-channels|feature-flags)(\/[^/]+)*$/,
+  },
   // Registrar una venta en el local.
   { methods: ["POST"], path: /^\/admin\/pos\/sales$/ },
 ]
@@ -64,7 +70,9 @@ export function resolveRole(metadata: unknown): Role {
  * canónica nunca se reconoce, así que se deniega.
  */
 function canonicalPath(rawPath: string): string | null {
-  const withoutQuery = rawPath.split("?")[0]
+  // Express enruta sin distinguir mayúsculas (/admin/Regions llega a la misma
+  // ruta que /admin/regions), así que la política tampoco las distingue.
+  const withoutQuery = rawPath.split("?")[0].toLowerCase()
   const path =
     withoutQuery.length > 1 && withoutQuery.endsWith("/")
       ? withoutQuery.slice(0, -1)

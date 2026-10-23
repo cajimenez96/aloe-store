@@ -8,6 +8,7 @@ type Fakes = {
   warn: jest.Mock
   status: jest.Mock
   json: jest.Mock
+  resJson: jest.Mock
 }
 
 function setup(options: {
@@ -25,6 +26,7 @@ function setup(options: {
   })
   const json = jest.fn()
   const status = jest.fn(() => ({ json }))
+  const resJson = jest.fn()
   const req = {
     method: options.method,
     originalUrl: options.url,
@@ -33,8 +35,8 @@ function setup(options: {
       resolve: (key: string) => (key === "logger" ? { warn } : { retrieveUser }),
     },
   } as unknown as MedusaRequest
-  const res = { status } as unknown as MedusaResponse
-  return { req, res, next: jest.fn(), warn, status, json }
+  const res = { status, json: resJson } as unknown as MedusaResponse
+  return { req, res, next: jest.fn(), warn, status, json, resJson }
 }
 
 const asUser = (id = "user_1") => ({ actor_id: id, actor_type: "user" })
@@ -157,5 +159,62 @@ describe("enforceRole", () => {
     await enforceRole(f.req, f.res, f.next)
     expect(f.next).not.toHaveBeenCalled()
     expect(f.status).toHaveBeenCalledWith(403)
+  })
+
+  describe("metadata de la tienda", () => {
+    const storeBody = () => ({
+      stores: [
+        {
+          id: "store_1",
+          name: "Aloe",
+          metadata: {
+            bank_account: { cbu: "0123456789012345678901" },
+            transfer_promotion_code: "k3J9x2Qv7LmP4aRt8WzB",
+          },
+        },
+      ],
+    })
+
+    it("al vendedor se le quita la metadata de la tienda: tiene el CBU y el código de la promoción", async () => {
+      const f = setup({
+        method: "GET",
+        url: "/admin/stores?fields=*",
+        auth: asUser(),
+        user: { id: "user_1", metadata: { role: "vendedor" } },
+      })
+      await enforceRole(f.req, f.res, f.next)
+      expect(f.next).toHaveBeenCalledTimes(1)
+
+      f.res.json(storeBody() as never)
+      const sent = JSON.stringify(f.resJson.mock.calls[0][0])
+      expect(sent).toContain("Aloe")
+      expect(sent).not.toContain("metadata")
+      expect(sent).not.toContain("0123456789012345678901")
+      expect(sent).not.toContain("k3J9x2Qv7LmP4aRt8WzB")
+    })
+
+    it("también la quita cuando la ruta se escribe con mayúsculas", async () => {
+      const f = setup({
+        method: "GET",
+        url: "/ADMIN/Stores",
+        auth: asUser(),
+        user: { id: "user_1", metadata: { role: "vendedor" } },
+      })
+      await enforceRole(f.req, f.res, f.next)
+      f.res.json(storeBody() as never)
+      expect(JSON.stringify(f.resJson.mock.calls[0][0])).not.toContain("k3J9x2Qv7LmP4aRt8WzB")
+    })
+
+    it("al admin no se le quita nada", async () => {
+      const f = setup({
+        method: "GET",
+        url: "/admin/stores",
+        auth: asUser(),
+        user: { id: "user_1", metadata: { role: "admin" } },
+      })
+      await enforceRole(f.req, f.res, f.next)
+      f.res.json(storeBody() as never)
+      expect(JSON.stringify(f.resJson.mock.calls[0][0])).toContain("k3J9x2Qv7LmP4aRt8WzB")
+    })
   })
 })

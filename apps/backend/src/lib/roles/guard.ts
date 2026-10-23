@@ -14,6 +14,28 @@ const DENIED_BODY = {
     "Tu rol no tiene permiso para esta acción. Pedile el permiso al administrador.",
 }
 
+const STORE_ROUTE = /^\/admin\/stores(\/|$)/i
+
+/** Quita `metadata` de las tiendas de la respuesta: ahí viven el CBU y el código de la promoción. */
+function redactStoreMetadata(res: MedusaResponse) {
+  const send = res.json.bind(res)
+  res.json = ((body: unknown) => {
+    const strip = (store: unknown) => {
+      if (store && typeof store === "object") {
+        delete (store as Record<string, unknown>).metadata
+      }
+    }
+    if (body && typeof body === "object") {
+      const payload = body as { store?: unknown; stores?: unknown }
+      strip(payload.store)
+      if (Array.isArray(payload.stores)) {
+        payload.stores.forEach(strip)
+      }
+    }
+    return send(body as never)
+  }) as typeof res.json
+}
+
 /**
  * Guard de /admin/* (seguridad.md, SEC-21). Va después de la autenticación de
  * Medusa: solo actúa sobre usuarios del panel ya autenticados. Una solicitud sin
@@ -47,6 +69,9 @@ export async function enforceRole(
   }
 
   if (allowed) {
+    if (role === "vendedor" && STORE_ROUTE.test(path)) {
+      redactStoreMetadata(res)
+    }
     return next()
   }
 

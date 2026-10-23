@@ -61,6 +61,28 @@ describe("decide: admin", () => {
     expect(decide("admin", "POST", "/admin/invites")).toBe(true)
   })
 
+  it("no evade las rutas del superadmin cambiando mayúsculas y minúsculas: Express enruta sin distinguirlas", () => {
+    for (const path of [
+      "/admin/Regions",
+      "/admin/REGIONS/reg_1",
+      "/admin/API-keys",
+      "/admin/ApI-KeYs/apk_1/revoke",
+      "/admin/Users/user_1",
+      "/admin/Tax-Rates",
+      "/admin/Payments/Payment-Providers",
+      "/ADMIN/regions",
+      "/Admin/Stores/store_1",
+    ]) {
+      for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+        expect({ method, path, allowed: decide("admin", method, path) }).toEqual({
+          method,
+          path,
+          allowed: false,
+        })
+      }
+    }
+  })
+
   it("no puede modificar la tienda de Medusa", () => {
     expect(decide("admin", "GET", "/admin/stores")).toBe(true)
     expect(decide("admin", "POST", "/admin/stores/store_1")).toBe(false)
@@ -92,12 +114,31 @@ describe("decide: vendedor", () => {
     }
   })
 
+  it("puede leer, sin modificar, lo mínimo para que el panel cargue", () => {
+    for (const path of [
+      "/admin/stores",
+      "/admin/stores/store_1",
+      "/admin/layouts/sidebar/configuration",
+      "/admin/layouts/configurations",
+      "/admin/regions",
+      "/admin/regions/reg_1",
+      "/admin/sales-channels",
+      "/admin/feature-flags",
+    ]) {
+      expect(decide("vendedor", "GET", path)).toBe(true)
+      for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+        expect(decide("vendedor", method, path)).toBe(false)
+      }
+    }
+  })
+
   it("puede consultar su propio usuario (el panel lo necesita)", () => {
     expect(decide("vendedor", "GET", "/admin/users/me")).toBe(true)
   })
 
   it("no accede a configuración, precios, usuarios ni claves", () => {
     for (const [method, path] of [
+      ["GET", "/admin/notifications"],
       ["GET", "/admin/users"],
       ["GET", "/admin/users/user_1"],
       ["POST", "/admin/users/user_1"],
@@ -122,6 +163,14 @@ describe("decide: vendedor", () => {
         allowed: false,
       })
     }
+  })
+
+  it("trata las rutas sin distinguir mayúsculas, igual que Express", () => {
+    expect(decide("vendedor", "GET", "/admin/Products")).toBe(true)
+    expect(decide("vendedor", "GET", "/ADMIN/PRODUCTS")).toBe(true)
+    expect(decide("vendedor", "GET", "/admin/Users")).toBe(false)
+    expect(decide("vendedor", "POST", "/ADMIN/POS/SALES")).toBe(true)
+    expect(decide("vendedor", "POST", "/admin/Products")).toBe(false)
   })
 
   it("deniega por defecto una ruta nueva o desconocida", () => {

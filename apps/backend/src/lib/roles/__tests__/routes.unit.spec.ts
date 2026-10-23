@@ -115,6 +115,26 @@ describe("política de roles sobre todas las rutas de /admin", () => {
     }
   })
 
+  it("cambiar las mayúsculas de cualquier ruta no cambia la decisión de ningún rol", () => {
+    const scramble = (value: string) =>
+      value
+        .split("")
+        .map((c, i) => (i % 2 ? c.toUpperCase() : c.toLowerCase()))
+        .join("")
+    const changed = allRoutes
+      .flatMap((r) =>
+        ["superadmin", "admin", "vendedor"].map((role) => ({
+          route: key(r),
+          role,
+          same:
+            decide(role as "admin", r.method, r.path) ===
+            decide(role as "admin", r.method, scramble(r.path)),
+        }))
+      )
+      .filter((x) => !x.same)
+    expect(changed).toEqual([])
+  })
+
   it("el vendedor tiene permitidas exactamente estas rutas, y todas las demás denegadas", () => {
     const allowed = allRoutes
       .filter((r) => decide("vendedor", r.method, r.path))
@@ -129,10 +149,19 @@ describe("política de roles sobre todas las rutas de /admin", () => {
     const reads = allowed.filter((k) => k.startsWith("GET "))
     for (const read of reads) {
       expect(read).toMatch(
-        /^GET \/admin\/(products|product-categories|inventory-items|stock-locations|orders|transfer-proofs)(\/|$)|^GET \/admin\/users\/me$/
+        /^GET \/admin\/(products|product-categories|inventory-items|stock-locations|orders|transfer-proofs|stores|layouts|regions|sales-channels|feature-flags)(\/|$)|^GET \/admin\/users\/me$/
       )
     }
     expect(reads.length).toBeGreaterThan(5)
+  })
+
+  it("el vendedor no modifica nada de la configuración que sí puede leer", () => {
+    const config = /^\/admin\/(stores|layouts|regions|sales-channels|feature-flags)(\/|$)/
+    const leaked = allRoutes
+      .filter((r) => r.method !== "GET" && config.test(r.path))
+      .filter((r) => decide("vendedor", r.method, r.path))
+      .map(key)
+    expect(leaked).toEqual([])
   })
 
   it("el vendedor no puede nada de lo sensible", () => {
@@ -140,7 +169,6 @@ describe("política de roles sobre todas las rutas de /admin", () => {
       /^\/admin\/users(\/(?!me$)|$)/,
       /^\/admin\/invites/,
       /^\/admin\/api-keys/,
-      /^\/admin\/regions/,
       /^\/admin\/tax-/,
       /^\/admin\/promotions/,
       /^\/admin\/campaigns/,
@@ -149,9 +177,7 @@ describe("política de roles sobre todas las rutas de /admin", () => {
       /^\/admin\/payment-collections/,
       /^\/admin\/refund-reasons/,
       /^\/admin\/uploads/,
-      /^\/admin\/stores/,
       /^\/admin\/store-settings/,
-      /^\/admin\/sales-channels/,
       /^\/admin\/shipping-/,
       /^\/admin\/fulfillment/,
     ]
