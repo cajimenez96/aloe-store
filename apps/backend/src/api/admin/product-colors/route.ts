@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
+import { COLOR_FIELDS, extractColors } from "../../../lib/product-colors/extract"
 import { normalizeHex } from "../../../modules/product-color/hex"
 import { setOptionValueColorWorkflow } from "../../../workflows/set-option-value-color"
 
@@ -23,29 +24,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product",
-    fields: [
-      "id",
-      "options.title",
-      "options.values.id",
-      "options.values.value",
-      "options.values.product_color.hex",
-    ],
+    fields: COLOR_FIELDS,
     filters: { id: productId },
   })
 
-  const options = (data[0]?.options ?? []) as {
-    title: string
-    values: { id: string; value: string; product_color?: { hex: string } | null }[]
-  }[]
-
-  const colors = options
-    .filter((option) => option?.title?.trim().toLowerCase() === "color")
-    .flatMap((option) => option.values ?? [])
-    .map((value) => ({
-      option_value_id: value.id,
-      value: value.value,
-      hex: value.product_color?.hex ?? null,
-    }))
+  const colors = extractColors(data[0])
 
   res.json({ colors })
 }
