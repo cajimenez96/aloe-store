@@ -33,6 +33,20 @@ module.exports = defineConfig({
         ],
       },
     },
+    {
+      // MVP0: el proveedor local solo registra el aviso en la terminal, no envía
+      // nada (planning.md, TEC-02). El proveedor real se configura al desplegar.
+      resolve: "@medusajs/medusa/notification",
+      options: {
+        providers: [
+          {
+            resolve: "@medusajs/medusa/notification-local",
+            id: "local",
+            options: { channels: ["email"] },
+          },
+        ],
+      },
+    },
     ...(redisUrl
       ? [
           {
