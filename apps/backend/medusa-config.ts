@@ -3,6 +3,7 @@ import { loadEnv, defineConfig } from "@medusajs/framework/utils"
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 const redisUrl = process.env.REDIS_URL
+const backendUrl = process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000"
 
 module.exports = defineConfig({
   projectConfig: {
@@ -16,16 +17,32 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET,
     },
   },
-  modules: redisUrl
-    ? [
-        {
-          resolve: "@medusajs/medusa/event-bus-redis",
-          options: { redisUrl },
-        },
-        {
-          resolve: "@medusajs/medusa/workflow-engine-redis",
-          options: { redis: { redisUrl } },
-        },
-      ]
-    : [],
+  modules: [
+    {
+      // Imágenes de producto en local. La URL pública se arma con
+      // MEDUSA_BACKEND_URL; el proveedor no la lee por su cuenta.
+      resolve: "@medusajs/medusa/file",
+      options: {
+        providers: [
+          {
+            resolve: "@medusajs/medusa/file-local",
+            id: "local",
+            options: { backend_url: `${backendUrl}/static` },
+          },
+        ],
+      },
+    },
+    ...(redisUrl
+      ? [
+          {
+            resolve: "@medusajs/medusa/event-bus-redis",
+            options: { redisUrl },
+          },
+          {
+            resolve: "@medusajs/medusa/workflow-engine-redis",
+            options: { redis: { redisUrl } },
+          },
+        ]
+      : []),
+  ],
 })
