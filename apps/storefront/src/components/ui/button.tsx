@@ -16,10 +16,12 @@ const buttonVariants = cva(
         outline:
           "border border-ink bg-canvas-light text-ink hover:bg-canvas active:bg-canvas",
         aloe: "bg-aloe text-ink hover:brightness-95 active:brightness-90",
+        ghost: "text-ink hover:bg-canvas active:bg-canvas",
       },
       size: {
         default: "px-6 py-3",
         sm: "min-h-9 px-4 py-2 text-sm",
+        icon: "size-11 p-0",
       },
     },
     defaultVariants: { variant: "primary", size: "default" },
