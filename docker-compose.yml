@@ -1,0 +1,68 @@
+# Entorno de desarrollo local. Produccion se despliega con Coolify (arquitectura.md, seccion 17).
+# Puertos del host elegidos para no chocar con otros contenedores locales (5433, 6379, 9000).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aloe
+      POSTGRES_PASSWORD: aloe
+      POSTGRES_DB: aloe_store
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aloe -d aloe_store"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: "9100"
+      # sslmode=disable: Medusa fuerza SSL con cualquier host distinto de localhost y este Postgres no lo tiene.
+      DATABASE_URL: postgres://aloe:aloe@postgres:5432/aloe_store?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret}
+      COOKIE_SECRET: ${COOKIE_SECRET:-dev-only-cookie-secret}
+      STORE_CORS: ${STORE_CORS:-http://localhost:8000}
+      ADMIN_CORS: ${ADMIN_CORS:-http://localhost:9100}
+      AUTH_CORS: ${AUTH_CORS:-http://localhost:8000,http://localhost:9100}
+      MEDUSA_WORKER_MODE: shared
+    ports:
+      - "9100:9100"
+    volumes:
+      - ./apps/backend/src:/app/apps/backend/src
+      - ./apps/backend/medusa-config.ts:/app/apps/backend/medusa-config.ts
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:9100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+volumes:
+  postgres-data:
+  redis-data:
