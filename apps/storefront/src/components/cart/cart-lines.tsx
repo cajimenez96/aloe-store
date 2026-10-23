@@ -141,6 +141,10 @@ export function CartLines({ cart, transferPercent, hasUnavailable = false }: Car
           </div>
         )}
       </dl>
+
+      <Button asChild className="w-full md:w-auto md:self-end">
+        <Link href="/checkout">Continuar compra</Link>
+      </Button>
     </div>
   )
 }

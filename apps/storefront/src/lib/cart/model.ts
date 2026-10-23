@@ -16,6 +16,10 @@ type MedusaLine = {
 export type CartInput = {
   id: string
   currency_code: string
+  /** Productos solos. El `subtotal` de Medusa ya suma el envío. */
+  item_subtotal?: number | null
+  subtotal?: number | null
+  shipping_total?: number | null
   total: number
   items?: MedusaLine[] | null
 }
@@ -38,6 +42,8 @@ export type CartView = {
   currencyCode: string
   lines: CartLine[]
   itemCount: number
+  subtotal: number
+  shippingTotal: number
   /** Total calculado por Medusa, en la unidad de la moneda. */
   total: number
 }
@@ -45,7 +51,7 @@ export type CartView = {
 /** Lo que muestra el carrito, a partir de la respuesta de Medusa (que calcula todos los montos). */
 export function buildCartView(cart: CartInput | null | undefined): CartView {
   if (!cart) {
-    return { id: null, currencyCode: "ars", lines: [], itemCount: 0, total: 0 }
+    return { id: null, currencyCode: "ars", lines: [], itemCount: 0, subtotal: 0, shippingTotal: 0, total: 0 }
   }
   const lines = (cart.items ?? []).map((item) => ({
     id: item.id,
@@ -64,6 +70,8 @@ export function buildCartView(cart: CartInput | null | undefined): CartView {
     currencyCode: cart.currency_code,
     lines,
     itemCount: lines.reduce((sum, line) => sum + line.quantity, 0),
+    subtotal: cart.item_subtotal ?? cart.subtotal ?? cart.total,
+    shippingTotal: cart.shipping_total ?? 0,
     total: cart.total,
   }
 }

@@ -43,9 +43,25 @@ export async function readCartId(): Promise<string | null> {
 }
 
 // Medusa no devuelve el total de cada línea ni la miniatura salvo que se pidan.
-const CART_FIELDS = encodeURIComponent("+items.total,+items.thumbnail,+items.product_handle,+items.product_id")
+const CART_FIELDS = encodeURIComponent("+items.total,+items.thumbnail,+items.product_handle,+items.product_id,+item_subtotal,+subtotal,+shipping_total,+email,*shipping_address,*shipping_methods")
 
-type CartResponse = { cart: CartInput & { completed_at?: string | null } }
+export type CartDetails = CartInput & {
+  completed_at?: string | null
+  email?: string | null
+  metadata?: Record<string, unknown> | null
+  shipping_address?: {
+    first_name?: string | null
+    last_name?: string | null
+    phone?: string | null
+    address_1?: string | null
+    city?: string | null
+    province?: string | null
+    postal_code?: string | null
+  } | null
+  shipping_methods?: { shipping_option_id?: string | null }[] | null
+}
+
+type CartResponse = { cart: CartDetails }
 
 /** El carrito de la cookie, o null si no hay, no existe más o ya se completó. */
 export async function getCart() {

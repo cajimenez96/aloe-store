@@ -10,8 +10,10 @@ import {
 const medusaCart = {
   id: "cart_1",
   currency_code: "ars",
-  subtotal: 5000,
-  total: 5000,
+  item_subtotal: 5000,
+  subtotal: 6200,
+  shipping_total: 1200,
+  total: 6200,
   items: [
     {
       id: "item_1",
@@ -43,7 +45,7 @@ const medusaCart = {
 describe("buildCartView", () => {
   it("arma las líneas con los precios que calculó Medusa", () => {
     const view = buildCartView(medusaCart)
-    expect(view).toMatchObject({ id: "cart_1", currencyCode: "ars", total: 5000, itemCount: 3 })
+    expect(view).toMatchObject({ id: "cart_1", currencyCode: "ars", total: 6200, subtotal: 5000, shippingTotal: 1200, itemCount: 3 })
     expect(view.lines[0]).toEqual({
       id: "item_1",
       variantId: "var_1",
