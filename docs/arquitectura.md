@@ -529,9 +529,11 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 
 | Código | HTTP | Cuándo | Cómo se recupera el usuario |
 |---|---|---|---|
-| `STOCK_INSUFFICIENT` | 409 | No hay stock suficiente. | Reducir la cantidad o elegir otra variante. |
-| `MAX_UNITS_EXCEEDED` | 422 | Supera el máximo de unidades por variante. | Reducir la cantidad o comprar en el local. |
-| `VARIANT_UNAVAILABLE` | 409 | Variante despublicada o sin precio. | Elegir otra combinación. |
+| `STOCK_INSUFFICIENT` | 400 | No hay stock suficiente. | Reducir la cantidad o elegir otra variante. |
+| `MAX_UNITS_EXCEEDED` | 400 | Supera el máximo de unidades por variante. | Reducir la cantidad o comprar en el local. |
+| `VARIANT_UNAVAILABLE` | 400 | Variante despublicada o sin precio. | Elegir otra combinación. |
+
+**[Confirmado en HU-18]** estos tres errores salen de los hooks `validate` de agregar y cambiar cantidad. Medusa los responde con HTTP 400 (no permite fijar otro estado sin perder el `code`), así que el contrato es el campo `code`. El campo `message` es un JSON con el detalle: `{"available": 3}` para `STOCK_INSUFFICIENT`, `{"max_units_per_variant": 5}` para `MAX_UNITS_EXCEEDED`. Una variante sin precio la rechaza Medusa por su cuenta con otro mensaje.
 | `DISCOUNT_PAYMENT_MISMATCH` | 422 | Descuento de transferencia con otro medio de pago. | Volver a elegir el medio de pago. |
 | `PAYMENT_PROVIDER_UNAVAILABLE` | 503 | Mercado Pago no responde. | Reintentar o pagar por transferencia. |
 | `PAYMENT_AMOUNT_MISMATCH` | 409 | El monto pagado no coincide con el pedido. | Interno: se registra y el admin revisa. |
