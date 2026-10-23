@@ -93,6 +93,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     })
   }
 
+  // La tarjeta todavía no crea una sesión de pago (HU-24): se recuerda la elección
+  // en el carrito, sin pisar el resto de la metadata (por ejemplo el documento).
+  await updateCartWorkflow(req.scope).run({
+    input: { id: cartId, metadata: { ...(cart.metadata ?? {}), payment_method: method } },
+  })
+
   if (method === "transfer") {
     cart = await load()
     let collectionId = cart.payment_collection?.id
@@ -111,12 +117,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       })
     }
   }
-
-  // La tarjeta todavía no crea una sesión de pago (HU-24): se recuerda la elección
-  // en el carrito, sin pisar el resto de la metadata (por ejemplo el documento).
-  await updateCartWorkflow(req.scope).run({
-    input: { id: cartId, metadata: { ...(cart.metadata ?? {}), payment_method: method } },
-  })
 
   cart = await load()
   const session = (cart.payment_collection?.payment_sessions ?? []).find(

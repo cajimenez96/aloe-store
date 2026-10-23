@@ -5,6 +5,7 @@ import {
   mergeSettings,
   validateSettingsPatch,
 } from "../../../lib/store-settings/validation"
+import { resetTransferCodeCache } from "../../../lib/transfer-discount/secret"
 
 async function readStore(req: MedusaRequest) {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
@@ -48,5 +49,7 @@ export async function PATCH(req: MedusaRequest, res: MedusaResponse) {
     input: { selector: { id: store.id }, update: { metadata } },
   })
 
+  // Un código nuevo debe regir ya en la depuración y en el hook, no 10 segundos después.
+  resetTransferCodeCache()
   res.json({ settings: mergeSettings(metadata) })
 }
