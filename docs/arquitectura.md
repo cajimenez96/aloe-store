@@ -538,6 +538,8 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 | `ORDER_ACCESS_DENIED` | 404 | Token inválido o vencido. | Usar el enlace del email. No revela si el pedido existe. |
 | `PENDING_ORDERS_LIMIT` | 429 | Superó el límite de pedidos pendientes. | Completar o esperar el vencimiento de un pedido anterior. |
 | `RATE_LIMITED` | 429 | Demasiadas solicitudes. | Esperar y reintentar. |
+| `IMAGE_TOO_LARGE` | 413 | Imagen de producto mayor a 5 MB. | Comprimirla o elegir una más liviana. |
+| `IMAGE_FORMAT_INVALID` | 415 | La imagen no es JPG, PNG o WebP, o su contenido no coincide con su extensión. | Subir una imagen JPG, PNG o WebP. |
 | `TRANSFER_PROOF_TOO_LARGE` | 413 | Archivo mayor a 5 MB. | Comprimir o subir PDF. |
 | `TRANSFER_PROOF_FORMAT_INVALID` | 415 | Formato no permitido. | Subir JPG, PNG o PDF. |
 | `TRANSFER_PROOF_PENDING` | 409 | Ya hay un comprobante en revisión. | Esperar la revisión. |
@@ -580,7 +582,7 @@ Los datos de desarrollo son descartables y **nunca incluyen datos reales de clie
 - La URL base se toma de `MEDUSA_BACKEND_URL`.
 - Regla: **nada privado se guarda en `static/`**.
 - Se validan formato (JPG, PNG o WebP), contenido real del archivo y tamaño máximo de 5 MB (SEC-50). **[Confirmado]** Medusa no valida nada al subir: aceptó un texto con extensión `.png`, un HTML, un `.exe` y un archivo de 6 MB. Hace falta un middleware propio (HU-05).
-- **[Confirmado]** el proveedor local arma las URLs con su propia opción `backend_url` (por defecto `http://localhost:9000`) y **no** lee `MEDUSA_BACKEND_URL`. Hay que configurarla en `medusa-config.ts` (HU-05).
+- **[Confirmado]** el proveedor local arma las URLs con su propia opción `backend_url` (por defecto `http://localhost:9000/static`) y **no** lee `MEDUSA_BACKEND_URL`. `medusa-config.ts` la define como `${MEDUSA_BACKEND_URL}/static` (HU-05).
 - El storefront usa `next/image`. **[Confirmado]** Next.js 16.4.3 rechaza optimizar imágenes de `localhost` (error "resolved to private IP"). Se resuelve con `images.dangerouslyAllowLocalIP: true` acotado a desarrollo, más `remotePatterns` con el host y la ruta `/static/**` tomados de `NEXT_PUBLIC_IMAGES_HOST`. Nunca se activa en producción (HU-05, HU-12).
 - Las URLs guardadas en local (`http://localhost:9000/static/...`) no sirven fuera de la máquina. Por eso el catálogo de prueba no se promueve a un entorno desplegado (sección 20.4).
 
