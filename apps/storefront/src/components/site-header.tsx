@@ -1,4 +1,26 @@
+import { ShoppingBag } from "@phosphor-icons/react/dist/ssr"
 import Link from "next/link"
+import { Suspense } from "react"
+import { getCart } from "@/lib/cart/api"
+import { buildCartView } from "@/lib/cart/model"
+
+async function CartLink() {
+  const { itemCount } = buildCartView(await getCart())
+  return <CartAnchor count={itemCount} />
+}
+
+function CartAnchor({ count }: { count: number }) {
+  return (
+    <Link
+      href="/carrito"
+      aria-label={count > 0 ? `Carrito, ${count} ${count === 1 ? "producto" : "productos"}` : "Carrito"}
+      className="inline-flex items-center gap-2 text-sm"
+    >
+      <ShoppingBag size={22} aria-hidden="true" />
+      {count > 0 && <span>{count}</span>}
+    </Link>
+  )
+}
 
 export function SiteHeader() {
   return (
@@ -7,6 +29,9 @@ export function SiteHeader() {
         <Link href="/productos" className="font-display text-2xl">
           Aloe
         </Link>
+        <Suspense fallback={<CartAnchor count={0} />}>
+          <CartLink />
+        </Suspense>
       </div>
     </header>
   )

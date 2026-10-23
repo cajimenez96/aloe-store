@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 import { Suspense } from "react"
 import { ProductDetail } from "@/components/product/product-detail"
 import { getProductByHandle, getProductColors, getRegion, getTransferPercent } from "@/lib/data"
+import { addOneToCart } from "@/lib/cart/actions"
 import { buildDetailModel } from "@/lib/product"
 
 export const metadata: Metadata = {
@@ -46,7 +47,11 @@ async function Detail({ params }: { params: Promise<{ handle: string }> }) {
   ])
 
   return (
-    <ProductDetail model={buildDetailModel(product, colors)} transferPercent={transferPercent} />
+    <ProductDetail
+      model={buildDetailModel(product, colors)}
+      transferPercent={transferPercent}
+      onAdd={addOneToCart}
+    />
   )
 }
 

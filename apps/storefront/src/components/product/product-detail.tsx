@@ -2,6 +2,7 @@
 
 import { ImageSquare } from "@phosphor-icons/react"
 import Image from "next/image"
+import Link from "next/link"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,12 +11,14 @@ import { formatPrice, transferPrice } from "@/lib/price"
 import type { DetailModel } from "@/lib/product"
 import { findVariant, type Selection } from "@/lib/variants"
 
+export type AddResult = { ok: true } | { ok: false; error: { message: string } }
+
 type ProductDetailProps = {
   model: DetailModel
   /** Porcentaje de descuento por transferencia. 0 o ausente: no se muestra. */
   transferPercent?: number
-  /** Agrega una variante al carrito. Lo conecta HU-17 (carrito con Server Actions). */
-  onAdd?: (variantId: string) => void | Promise<void>
+  /** Agrega una unidad de la variante al carrito (Server Action, HU-17). */
+  onAdd?: (variantId: string) => Promise<AddResult | void>
 }
 
 /**
@@ -26,6 +29,7 @@ type ProductDetailProps = {
 export function ProductDetail({ model, transferPercent = 0, onAdd }: ProductDetailProps) {
   const [selection, setSelection] = useState<Selection>({})
   const [adding, setAdding] = useState(false)
+  const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null)
 
   const variant = findVariant(model.selectorVariants, selection, model.options.length)
   const price = variant ? model.prices[variant.id] : undefined
@@ -48,8 +52,16 @@ export function ProductDetail({ model, transferPercent = 0, onAdd }: ProductDeta
   const add = async () => {
     if (!variant || !canBuy || !onAdd) return
     setAdding(true)
+    setFeedback(null)
     try {
-      await onAdd(variant.id)
+      const result = await onAdd(variant.id)
+      if (result) {
+        setFeedback(
+          result.ok
+            ? { ok: true, message: "Agregado al carrito." }
+            : { ok: false, message: result.error.message }
+        )
+      }
     } finally {
       setAdding(false)
     }
@@ -129,6 +141,20 @@ export function ProductDetail({ model, transferPercent = 0, onAdd }: ProductDeta
         <Button onClick={add} disabled={!canBuy || adding} className="w-full md:w-auto">
           {variant && price && !variant.inStock ? "Agotado" : "Agregar al carrito"}
         </Button>
+
+        <div aria-live="polite" role={feedback && !feedback.ok ? "alert" : "status"} className="text-sm">
+          {feedback &&
+            (feedback.ok ? (
+              <p className="flex flex-wrap items-center gap-3">
+                {feedback.message}
+                <Link href="/carrito" className="underline underline-offset-4">
+                  Ver carrito
+                </Link>
+              </p>
+            ) : (
+              <p className="text-ink">{feedback.message}</p>
+            ))}
+        </div>
 
         {model.description && (
           <div className="flex flex-col gap-2 border-t border-hairline pt-6">
