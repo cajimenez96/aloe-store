@@ -19,7 +19,22 @@ function imagePatterns(): NonNullable<NextConfig["images"]>["remotePatterns"] {
   ];
 }
 
+// Encabezados de seguridad básicos (seguridad.md, SEC-60). La política de
+// seguridad de contenido (CSP) completa se termina en HU-44 y HSTS al desplegar.
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Frame-Options", value: "DENY" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  },
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
   images: {
     remotePatterns: imagePatterns(),
     // Next.js rechaza optimizar imágenes que resuelven a una IP privada, como

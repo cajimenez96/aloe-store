@@ -1,26 +1,49 @@
 @import "tailwindcss";
 
+/*
+ * Tokens de docs/DESIGN.md, pista "transaccional": lienzo claro o crema, tinta
+ * negra, botones pill y los verdes aloe y pistacho solo como relleno de superficie.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --canvas: #fbfbf5;
+  --canvas-light: #ffffff;
+  --ink: #000000;
+  --hairline: #e4e4e7;
+  --shade-30: #d4d4d8;
+  --shade-40: #a1a1aa;
+  --shade-50: #71717a;
+  --shade-60: #52525b;
+  --shade-70: #3f3f46;
+  --aloe: #c1fbd4;
+  --pistachio: #d4f9e0;
+  --danger: #b42318;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-canvas: var(--canvas);
+  --color-canvas-light: var(--canvas-light);
+  --color-ink: var(--ink);
+  --color-hairline: var(--hairline);
+  --color-shade-30: var(--shade-30);
+  --color-shade-40: var(--shade-40);
+  --color-shade-50: var(--shade-50);
+  --color-shade-60: var(--shade-60);
+  --color-shade-70: var(--shade-70);
+  --color-aloe: var(--aloe);
+  --color-pistachio: var(--pistachio);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-inter), Helvetica, Arial, sans-serif;
+  --radius-pill: 9999px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/* Los títulos de pantalla usan el corte fino de la guía de diseño. */
+.font-display {
+  font-weight: 300;
+  line-height: 1.1;
 }

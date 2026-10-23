@@ -64,3 +64,5 @@ Thumbs.db
 **/.DS_Store
 # Artefactos del navegador de pruebas
 .playwright-mcp/
+storybook-static/
+*.tsbuildinfo

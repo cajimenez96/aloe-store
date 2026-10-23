@@ -22,7 +22,7 @@ step "Tipos"
 npm run typecheck --workspaces --if-present
 
 step "Pruebas"
-npm run test:unit --workspace @aloe/backend
+npm run test:unit --workspaces --if-present
 
 step "Auditoria de dependencias (falla ante vulnerabilidades criticas)"
 npm audit --audit-level=critical
@@ -30,6 +30,9 @@ npm audit --audit-level=critical
 if [ "$FAST" -eq 0 ]; then
   step "Build"
   npm run build
+
+  step "Build de Storybook"
+  npm run build-storybook --workspace @aloe/storefront
 fi
 
 printf '\nTodas las verificaciones pasaron.\n'
