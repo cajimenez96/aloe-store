@@ -406,6 +406,14 @@ Respuesta:
 
 Con `card`, la respuesta incluye los datos necesarios para redirigir a Checkout Pro.
 
+**[Confirmado en HU-21 y HU-22]**
+- Con `transfer` el backend aplica la promoción con el código interno, descarta las sesiones de otro proveedor y crea la sesión de `pp_system_default`. Con `card` quita la promoción. Repetir el mismo medio no cambia nada.
+- Todavía no hay proveedor de tarjeta (HU-24): con `card` la respuesta trae `payment_session: null`. La elección se guarda en `cart.metadata.payment_method`.
+- Los montos de `cart` salen como números en la unidad de la moneda. El descuento alcanza solo a los productos, no al envío.
+- Cuerpo inválido (otro valor o campos extra) responde 400; un carrito inexistente o completado, 404; sin código de promoción configurado, `PAYMENT_PROVIDER_UNAVAILABLE`.
+- **El código nunca sale por la API de tienda.** Medusa devuelve `promotions.code` y `items.adjustments.code` dentro del carrito, así que un middleware sobre `/store*` (`lib/transfer-discount/scrub-middleware.ts`) borra el código de toda respuesta. Se lee de la configuración y se guarda 10 segundos en memoria, de modo que un cambio de código tarda hasta 10 segundos en regir en la depuración.
+- **Último control:** el hook `validate` de `completeCartWorkflow` vuelve a leer el carrito y rechaza con `DISCOUNT_PAYMENT_MISMATCH` si tiene la promoción y alguna sesión de pago no es del proveedor manual.
+
 ### 14.2 Subir comprobante
 
 `POST /store/order-access/:id/transfer-proofs` · `multipart/form-data` · header `x-order-token`

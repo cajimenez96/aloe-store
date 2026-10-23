@@ -4,6 +4,7 @@ import {
   defineMiddlewares,
 } from '@medusajs/framework/http'
 import { enforceRole } from '../lib/roles/guard'
+import { scrubTransferCode } from '../lib/transfer-discount/scrub-middleware'
 import { validateImageUploads } from '../lib/uploads/validate-image-uploads'
 
 // The product index declares filterable `status` and `sales_channel_ids`, so
@@ -20,6 +21,12 @@ export default defineMiddlewares({
           },
         }),
       ],
+    },
+    {
+      // El código de la promoción de transferencia nunca sale por la API de
+      // tienda (SEC-31, HU-22).
+      matcher: '/store*',
+      middlewares: [scrubTransferCode],
     },
     {
       // Medusa no valida el tipo ni el tamaño de lo que se sube (SEC-50).
