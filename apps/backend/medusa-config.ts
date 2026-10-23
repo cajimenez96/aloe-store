@@ -5,6 +5,11 @@ loadEnv(process.env.NODE_ENV || "development", process.cwd())
 const redisUrl = process.env.REDIS_URL
 
 module.exports = defineConfig({
+  admin: {
+    // El worker no sirve el panel (arquitectura.md, seccion 3).
+    disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
+    backendUrl: process.env.MEDUSA_BACKEND_URL,
+  },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     redisUrl,
