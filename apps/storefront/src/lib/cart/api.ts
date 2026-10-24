@@ -1,4 +1,5 @@
 import { cookies } from "next/headers"
+import { clientIpHeaders } from "../client-ip"
 import { getEnv } from "../env"
 import { CART_COOKIE, type CartError, type CartInput, parseCartError } from "./model"
 
@@ -18,6 +19,7 @@ export async function cartFetch<T>(
     const response = await fetch(`${backendUrl}${path}`, {
       method: init.method ?? "GET",
       headers: {
+        ...(await clientIpHeaders()),
         "x-publishable-api-key": publishableKey,
         ...(init.body ? { "content-type": "application/json" } : {}),
       },

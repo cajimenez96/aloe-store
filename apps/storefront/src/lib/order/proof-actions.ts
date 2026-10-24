@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
+import { clientIpHeaders } from "../client-ip"
 import { getEnv } from "../env"
 import { isOrderId, isOrderToken, orderCookieName } from "./model"
 import { MAX_PROOF_BYTES, proofErrorMessage } from "./proof"
@@ -31,7 +32,7 @@ export async function uploadProof(orderId: string, _previous: ProofUploadState, 
   try {
     const response = await fetch(`${backendUrl}/store/order-access/${orderId}/transfer-proofs`, {
       method: "POST",
-      headers: { "x-publishable-api-key": publishableKey, "x-order-token": token },
+      headers: { ...(await clientIpHeaders()), "x-publishable-api-key": publishableKey, "x-order-token": token },
       body,
       cache: "no-store",
     })

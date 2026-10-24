@@ -6,6 +6,7 @@ import {
 import { enforceRole } from '../lib/roles/guard'
 import { blockNativeOrderRoutes } from '../lib/order-access/block-native'
 import { enforceSingleCategoryOnAdd } from '../lib/single-category/middleware'
+import { rateLimit } from '../lib/rate-limit/middleware'
 import { receiveProofUpload } from '../lib/transfer-proofs/upload-middleware'
 import { scrubTransferCode } from '../lib/transfer-discount/scrub-middleware'
 import { validateImageUploads } from '../lib/uploads/validate-image-uploads'
@@ -26,6 +27,22 @@ export default defineMiddlewares({
       ],
     },
     {
+      // Login del panel y creación de carritos y pedidos (SEC-17, HU-43).
+      method: ['POST'],
+      matcher: '/auth/user*',
+      middlewares: [rateLimit('login')],
+    },
+    {
+      method: ['POST'],
+      matcher: '/store/carts',
+      middlewares: [rateLimit('checkout')],
+    },
+    {
+      method: ['POST'],
+      matcher: '/store/checkout/:cart_id/complete',
+      middlewares: [rateLimit('checkout')],
+    },
+    {
       // Los pedidos de la tienda se ven solo con el token y se confirman solo
       // por /store/checkout/:cart_id/complete (SEC-24).
       matcher: '/store/orders*',
@@ -40,7 +57,7 @@ export default defineMiddlewares({
       // El código de la promoción de transferencia nunca sale por la API de
       // tienda (SEC-31, HU-22).
       matcher: '/store*',
-      middlewares: [scrubTransferCode],
+      middlewares: [rateLimit('store'), scrubTransferCode],
     },
     {
       // Comprobante de transferencia: multipart, un archivo, validado por contenido (SEC-51).

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers"
+import { clientIpHeaders } from "../client-ip"
 import { getEnv } from "../env"
 import type { ProofStatus } from "./proof"
 import { buildOrderView, isOrderId, isOrderToken, orderCookieName, type OrderView } from "./model"
@@ -20,7 +21,7 @@ export async function getOrder(orderId: string): Promise<OrderResult> {
   const { backendUrl, publishableKey } = getEnv()
   try {
     const response = await fetch(`${backendUrl}/store/order-access/${orderId}`, {
-      headers: { "x-publishable-api-key": publishableKey, "x-order-token": token },
+      headers: { ...(await clientIpHeaders()), "x-publishable-api-key": publishableKey, "x-order-token": token },
       cache: "no-store",
     })
     if (response.status === 404) return { status: "denied" }
@@ -40,7 +41,7 @@ export async function getProofStatus(orderId: string): Promise<ProofStatus | nul
   const { backendUrl, publishableKey } = getEnv()
   try {
     const response = await fetch(`${backendUrl}/store/order-access/${orderId}/transfer-proofs`, {
-      headers: { "x-publishable-api-key": publishableKey, "x-order-token": token },
+      headers: { ...(await clientIpHeaders()), "x-publishable-api-key": publishableKey, "x-order-token": token },
       cache: "no-store",
     })
     if (!response.ok) return null

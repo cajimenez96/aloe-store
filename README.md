@@ -118,3 +118,6 @@ Conventional commits con el detalle en español: `feat: se agrega filtro por sub
 
 - `STOREFRONT_URL` (por defecto `http://localhost:3000`): base de los enlaces de los emails.
 - `TRUSTED_PROXY_HOPS` (por defecto `0`): cuántos proxies de confianza hay delante del backend. Con `0` el límite de pedidos por IP usa la dirección de la conexión e ignora `X-Forwarded-For`, que el cliente puede inventar. Al desplegar detrás de un proxy hay que ponerlo en la cantidad real de saltos.
+- `RATE_LIMITS` (JSON, opcional): cambia los límites de solicitudes sin tocar el código, por ejemplo `{"login":{"limit":3,"windowSeconds":30}}`. Claves: `login`, `checkout`, `store`. Una entrada inválida se ignora. El límite vive en memoria de una instancia.
+- `TRUSTED_PROXY_HOPS` también va en el **storefront**, con el mismo valor que en el backend: el storefront llama al backend desde su servidor y reenvía la IP del cliente solo si se declara esto. Sin él, todos los clientes comparten una IP y los límites de solicitudes y de pedidos pendientes se aplican a todos juntos.
+- `PROOFS_DIR` (opcional): carpeta privada de los comprobantes. Por defecto `apps/backend/storage/private/proofs`, fuera de `static/`.
