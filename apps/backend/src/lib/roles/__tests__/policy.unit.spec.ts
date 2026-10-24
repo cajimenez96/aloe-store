@@ -92,6 +92,8 @@ describe("decide: admin", () => {
 describe("decide: vendedor", () => {
   it("registra ventas en el local", () => {
     expect(decide("vendedor", "POST", "/admin/pos/sales")).toBe(true)
+    expect(decide("vendedor", "GET", "/admin/pos/products")).toBe(true)
+    expect(decide("vendedor", "GET", "/admin/pos/sales")).toBe(false)
   })
 
   it("consulta productos, stock, pedidos y comprobantes sin modificarlos", () => {
@@ -151,6 +153,7 @@ describe("decide: vendedor", () => {
       ["GET", "/admin/store-settings"],
       ["PATCH", "/admin/store-settings"],
       ["GET", "/admin/pos/sales/summary"],
+      ["GET", "/admin/pos/sales"],
       ["POST", "/admin/transfer-proofs/tp_1/accept"],
       ["POST", "/admin/transfer-proofs/tp_1/reject"],
       ["POST", "/admin/uploads"],

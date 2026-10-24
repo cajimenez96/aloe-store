@@ -69,7 +69,6 @@ const allRoutes: AdminRoute[] = [
   { method: "POST", path: "/admin/transfer-proofs/x_id/reject" },
   { method: "GET", path: "/admin/store-settings" },
   { method: "PATCH", path: "/admin/store-settings" },
-  { method: "POST", path: "/admin/pos/sales" },
   { method: "GET", path: "/admin/pos/sales/summary" },
 ]
 
@@ -145,11 +144,12 @@ describe("política de roles sobre todas las rutas de /admin", () => {
     const writes = allowed.filter((k) => !k.startsWith("GET "))
     expect(writes).toEqual(["POST /admin/pos/sales"])
 
-    // Lectura: solo catálogo, stock, pedidos, comprobantes y su propio usuario.
+    // Lectura: solo catálogo, stock, pedidos, comprobantes, la búsqueda del punto
+    // de venta y su propio usuario. Las ventas del día son de admin.
     const reads = allowed.filter((k) => k.startsWith("GET "))
     for (const read of reads) {
       expect(read).toMatch(
-        /^GET \/admin\/(products|product-categories|inventory-items|stock-locations|orders|transfer-proofs|stores|layouts|regions|sales-channels|feature-flags)(\/|$)|^GET \/admin\/users\/me$/
+        /^GET \/admin\/(products|product-categories|inventory-items|stock-locations|orders|transfer-proofs|stores|layouts|regions|sales-channels|feature-flags)(\/|$)|^GET \/admin\/users\/me$|^GET \/admin\/pos\/products$/
       )
     }
     expect(reads.length).toBeGreaterThan(5)

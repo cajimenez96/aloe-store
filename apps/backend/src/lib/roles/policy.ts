@@ -36,8 +36,9 @@ export const VENDEDOR_ALLOWED: readonly Rule[] = [
     methods: ["GET"],
     path: /^\/admin\/(stores|layouts|regions|sales-channels|feature-flags)(\/[^/]+)*$/,
   },
-  // Registrar una venta en el local.
+  // Registrar una venta en el local y buscar productos para venderlos.
   { methods: ["POST"], path: /^\/admin\/pos\/sales$/ },
+  { methods: ["GET"], path: /^\/admin\/pos\/products$/ },
 ]
 
 /** Rutas que solo el superadmin puede modificar (el admin las puede leer). */

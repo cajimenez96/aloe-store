@@ -25,7 +25,7 @@ async function validate(
     data: [cart],
   } = await query.graph({
     entity: "cart",
-    fields: ["id", "sales_channel_id", "items.id", "items.variant_id", "items.quantity"],
+    fields: ["id", "sales_channel_id", "sales_channel.name", "items.id", "items.variant_id", "items.quantity"],
     filters: { id: cartId },
   })
   const { existing, incoming } = buildLines(
@@ -63,8 +63,13 @@ async function validate(
   } = await query.graph({ entity: "store", fields: ["id", "metadata"] })
   const configured = (store?.metadata as Record<string, unknown> | null | undefined)
     ?.max_units_per_variant
+  // El máximo por variante rige para pedidos online; en el canal Local (punto de venta) no.
   const maxUnits =
-    typeof configured === "number" ? configured : DEFAULT_SETTINGS.max_units_per_variant
+    cart?.sales_channel?.name === "Local"
+      ? Number.POSITIVE_INFINITY
+      : typeof configured === "number"
+        ? configured
+        : DEFAULT_SETTINGS.max_units_per_variant
 
   try {
     checkCartItems({ maxUnits, existing, incoming, variants })
