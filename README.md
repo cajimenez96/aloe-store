@@ -113,3 +113,8 @@ npm run check:fast    # lo mismo sin el build (lo ejecuta el hook de pre-push)
 ## Commits
 
 Conventional commits con el detalle en español: `feat: se agrega filtro por subcategoría`.
+
+### Variables del backend para pedidos
+
+- `STOREFRONT_URL` (por defecto `http://localhost:3000`): base de los enlaces de los emails.
+- `TRUSTED_PROXY_HOPS` (por defecto `0`): cuántos proxies de confianza hay delante del backend. Con `0` el límite de pedidos por IP usa la dirección de la conexión e ignora `X-Forwarded-For`, que el cliente puede inventar. Al desplegar detrás de un proxy hay que ponerlo en la cantidad real de saltos.

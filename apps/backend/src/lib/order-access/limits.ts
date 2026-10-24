@@ -4,6 +4,12 @@ export const MAX_PENDING_PER_EMAIL = 2
 export const MAX_PENDING_PER_IP = 3
 const IP_WINDOW_MS = 24 * 3_600_000
 
+/** Minúsculas, sin espacios y sin alias `+`: ana+1@x.com cuenta como ana@x.com. */
+export function normalizeEmail(email: string): string {
+  const [local = "", domain = ""] = email.trim().toLowerCase().split("@")
+  return `${local.split("+")[0]}@${domain}`
+}
+
 type Candidate = { email?: string | null; ipHash?: string | null; status: string; createdAt: Date }
 
 /**
@@ -17,10 +23,10 @@ export function pendingLimitReached(input: {
   now?: Date
 }): "email" | "ip" | null {
   const now = input.now ?? new Date()
-  const email = input.email.trim().toLowerCase()
+  const email = normalizeEmail(input.email)
   const pending = input.orders.filter((order) => order.status === "pending")
 
-  const byEmail = pending.filter((order) => (order.email ?? "").trim().toLowerCase() === email)
+  const byEmail = pending.filter((order) => normalizeEmail(order.email ?? "") === email)
   if (byEmail.length >= MAX_PENDING_PER_EMAIL) return "email"
 
   if (input.ipHash) {

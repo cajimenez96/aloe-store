@@ -30,6 +30,20 @@ describe("pendingLimitReached (SEC-40)", () => {
     ).toBe("email")
   })
 
+  it("un alias con + cuenta como el mismo email", () => {
+    expect(
+      pendingLimitReached({
+        orders: [order({ email: "ana+uno@ejemplo.com" }), order({ email: "ana+dos@ejemplo.com" })],
+        email: "ana+tres@ejemplo.com",
+        ipHash: "x",
+        now,
+      })
+    ).toBe("email")
+    expect(
+      pendingLimitReached({ orders: [order(), order()], email: "ana+nuevo@ejemplo.com", ipHash: "x", now })
+    ).toBe("email")
+  })
+
   it("los pedidos ya pagados o cancelados no cuentan para el email", () => {
     expect(
       pendingLimitReached({

@@ -3,7 +3,8 @@ import { ContainerRegistrationKeys, MathBN, Modules } from "@medusajs/framework/
 import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
 import { sendEmail } from "../../../../../lib/notifications/send-email"
 import { fail } from "../../../../../lib/order-access/http"
-import { hashIp, pendingLimitReached } from "../../../../../lib/order-access/limits"
+import { clientIp, trustedHopsFromEnv } from "../../../../../lib/order-access/ip"
+import { hashIp, normalizeEmail, pendingLimitReached } from "../../../../../lib/order-access/limits"
 import { generateToken, hashToken } from "../../../../../lib/order-access/token"
 import { mergeSettings } from "../../../../../lib/store-settings/validation"
 
@@ -64,77 +65,107 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return fail(res, 503, "PAYMENT_PROVIDER_UNAVAILABLE", "La transferencia no está disponible por ahora.")
   }
 
-  // SEC-40: máximo de pedidos pendientes por email y por IP.
-  const ipHash = hashIp(req.ip)
-  const since = new Date(Date.now() - 24 * 3_600_000)
-  const { data: recent } = await query.graph({
-    entity: "order",
-    fields: ["id", "email", "status", "created_at", "metadata"],
-    filters: { status: "pending", created_at: { $gte: since } },
-  })
-  const limit = pendingLimitReached({
-    email: cart.email,
-    ipHash,
-    orders: recent.map((order) => ({
-      email: order.email,
-      status: order.status,
-      createdAt: new Date(order.created_at as string),
-      ipHash: (order.metadata as Record<string, unknown> | null)?.client_ip_hash as string | undefined,
-    })),
-  })
-  if (limit) {
-    return fail(
-      res,
-      429,
-      "PENDING_ORDERS_LIMIT",
-      "Ya tenés pedidos pendientes de pago. Completá o esperá el vencimiento de uno anterior."
-    )
-  }
+  const ipHash = hashIp(
+    clientIp({
+      remoteAddress: req.socket.remoteAddress,
+      forwardedFor: req.headers["x-forwarded-for"] as string | undefined,
+      trustedHops: trustedHopsFromEnv(process.env.TRUSTED_PROXY_HOPS),
+    })
+  )
+  // El control del límite y la creación del pedido van juntos bajo un bloqueo por
+  // email y por IP: sin él, pedidos en paralelo pasan todos el control (SEC-40).
+  // El mismo bloqueo evita que dos llamadas sobre un mismo carrito generen dos tokens.
+  const keys = [`order-limit:email:${normalizeEmail(cart.email)}`, ...(ipHash ? [`order-limit:ip:${ipHash}`] : [])].sort()
+  const locking = req.scope.resolve(Modules.LOCKING)
 
-  const { result } = await completeCartWorkflow(req.scope).run({ input: { id: cartId } })
-  const orderId = (result as { id: string }).id
+  type Outcome =
+    | { ok: true; body: { order_id: string; display_id: number; token: string } }
+    | { ok: false; status: number; code: string; message: string }
 
-  const {
-    data: [order],
-  } = await query.graph({
-    entity: "order",
-    fields: ["id", "display_id", "total", "metadata", "created_at"],
-    filters: { id: orderId },
-  })
+  const outcome: Outcome = await locking.execute(
+    keys,
+    async (): Promise<Outcome> => {
+      const {
+        data: [fresh],
+      } = await query.graph({ entity: "cart", fields: ["id", "completed_at"], filters: { id: cartId } })
+      if (fresh?.completed_at) {
+        return { ok: false, status: 409, code: "CART_ALREADY_COMPLETED", message: "Este pedido ya fue confirmado. Revisá tu email." }
+      }
 
-  const token = generateToken()
-  const dueAt = new Date(Date.now() + settings.transfer_reservation_hours * 3_600_000)
-  const reference = `PED-${order.display_id}`
-  const orders = req.scope.resolve(Modules.ORDER)
-  await orders.updateOrders(orderId, {
-    metadata: {
-      ...(order.metadata ?? {}),
-      access_token_hash: hashToken(token),
-      payment_method: "transfer",
-      transfer_reference: reference,
-      transfer_due_at: dueAt.toISOString(),
-      client_ip_hash: ipHash,
-      customer_document: (cart.metadata as Record<string, unknown> | null)?.customer_document ?? null,
+      const since = new Date(Date.now() - 24 * 3_600_000)
+      const { data: recent } = await query.graph({
+        entity: "order",
+        fields: ["id", "email", "status", "created_at", "metadata"],
+        filters: { status: "pending", created_at: { $gte: since } },
+      })
+      const limit = pendingLimitReached({
+        email: cart.email as string,
+        ipHash,
+        orders: recent.map((order) => ({
+          email: order.email,
+          status: order.status,
+          createdAt: new Date(order.created_at as string),
+          ipHash: (order.metadata as Record<string, unknown> | null)?.client_ip_hash as string | undefined,
+        })),
+      })
+      if (limit) {
+        return {
+          ok: false,
+          status: 429,
+          code: "PENDING_ORDERS_LIMIT",
+          message: "Ya tenés pedidos pendientes de pago. Completá o esperá el vencimiento de uno anterior.",
+        }
+      }
+
+      const { result } = await completeCartWorkflow(req.scope).run({ input: { id: cartId } })
+      const orderId = (result as { id: string }).id
+
+      const {
+        data: [order],
+      } = await query.graph({
+        entity: "order",
+        fields: ["id", "display_id", "total", "metadata", "created_at"],
+        filters: { id: orderId },
+      })
+
+      const token = generateToken()
+      const dueAt = new Date(Date.now() + settings.transfer_reservation_hours * 3_600_000)
+      const reference = `PED-${order.display_id}`
+      await req.scope.resolve(Modules.ORDER).updateOrders(orderId, {
+        metadata: {
+          ...(order.metadata ?? {}),
+          access_token_hash: hashToken(token),
+          payment_method: "transfer",
+          transfer_reference: reference,
+          transfer_due_at: dueAt.toISOString(),
+          client_ip_hash: ipHash,
+          customer_document: (cart.metadata as Record<string, unknown> | null)?.customer_document ?? null,
+        },
+      })
+
+      const storefront = (process.env.STOREFRONT_URL ?? "http://localhost:3000").replace(/\/+$/, "")
+      void sendEmail(req.scope, {
+        to: cart.email as string,
+        template: "transfer-order",
+        data: {
+          name: cart.shipping_address?.first_name ?? "",
+          orderNumber: String(order.display_id),
+          total: formatMoney(money(order.total)),
+          holder: settings.bank_account!.holder,
+          cbu: settings.bank_account!.cbu,
+          alias: settings.bank_account!.alias,
+          bank: settings.bank_account!.bank,
+          reference,
+          dueDate: dueAt.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" }),
+          link: `${storefront}/pedido/${orderId}/acceso?token=${token}`,
+        },
+      })
+
+      return { ok: true, body: { order_id: orderId, display_id: Number(order.display_id), token } }
     },
-  })
+    { timeout: 15 }
+  )
 
-  const storefront = (process.env.STOREFRONT_URL ?? "http://localhost:3000").replace(/\/+$/, "")
-  void sendEmail(req.scope, {
-    to: cart.email,
-    template: "transfer-order",
-    data: {
-      name: cart.shipping_address.first_name,
-      orderNumber: String(order.display_id),
-      total: formatMoney(money(order.total)),
-      holder: settings.bank_account.holder,
-      cbu: settings.bank_account.cbu,
-      alias: settings.bank_account.alias,
-      bank: settings.bank_account.bank,
-      reference,
-      dueDate: dueAt.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" }),
-      link: `${storefront}/pedido/${orderId}/acceso?token=${token}`,
-    },
-  })
-
-  res.json({ order_id: orderId, display_id: order.display_id, token })
+  if (!outcome.ok) return fail(res, outcome.status, outcome.code, outcome.message)
+  res.json(outcome.body)
 }
