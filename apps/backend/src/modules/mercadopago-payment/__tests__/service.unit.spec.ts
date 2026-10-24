@@ -86,11 +86,22 @@ describe("MercadoPagoPaymentService", () => {
   })
 
   it("reembolsa por la API de Mercado Pago con el id guardado", async () => {
-    const { service, calls } = setup([{ status: 201, body: { id: 1 } }])
-    await service.refundPayment({ amount: 500, data: { mp_payment_id: "555" } } as never)
-    expect(calls[0].url).toBe("http://sim.local/v1/payments/555/refunds")
-    expect(calls[0].body).toEqual({ amount: 500 })
+    const { service, calls } = setup([
+      { status: 200, body: { id: 555, external_reference: "payses_ABC" } },
+      { status: 201, body: { id: 1 } },
+    ])
+    await service.refundPayment({ amount: 500, data: { mp_payment_id: "555", external_reference: "payses_ABC" } } as never)
+    expect(calls[1].url).toBe("http://sim.local/v1/payments/555/refunds")
+    expect(calls[1].body).toEqual({ amount: 500 })
     await expect(setup([]).service.refundPayment({ amount: 500, data: {} } as never)).rejects.toThrow()
+  })
+
+  it("no reembolsa un pago que pertenece a otra sesión", async () => {
+    const { service, calls } = setup([{ status: 200, body: { id: 555, external_reference: "payses_OTRA" } }])
+    await expect(
+      service.refundPayment({ amount: 500, data: { mp_payment_id: "555", external_reference: "payses_ABC" } } as never)
+    ).rejects.toThrow()
+    expect(calls).toHaveLength(1)
   })
 
   it("si el total no cambió al actualizar, no crea otra preferencia", async () => {

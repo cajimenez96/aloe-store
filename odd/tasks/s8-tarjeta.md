@@ -20,3 +20,12 @@ S4 (SP-02) Aplicacion y cuentas de prueba de Mercado Pago (prerrequisito, a carg
 
 L1 (2026-10-25, usuario): "si, pushea y avancemos". Sin credenciales de Mercado Pago todavia, se construye contra un simulador (arquitectura.md 10.4, nivel 1).
 L2: la ruta nativa de webhooks de Medusa (`/hooks/payment/:provider`) responde siempre 200 y valida despues, asi que no puede devolver `WEBHOOK_SIGNATURE_INVALID`; por eso la ruta propia `/hooks/mercadopago` valida la firma antes de procesar y el proveedor devuelve `not_supported` en `getWebhookActionAndData`.
+
+## Hallazgos del verificador independiente (flujo de tarjeta)
+
+- B1 (bloqueante): pago de una sesión que Medusa ya descartó se ignoraba → ahora se reembolsa (`payment_orphan_refunded`) y queda en log.
+- A1: el token de acceso se emitía en cada consulta → `claimOrderToken` lo entrega una sola vez, bajo bloqueo.
+- A3: el reembolso del proveedor verifica contra Mercado Pago que el pago pertenece a la sesión.
+- A4: `settleSession` corre bajo bloqueo por sesión y reconsulta el pago; un fallo de reembolso responde 503 para que MP reintente.
+- A5: `pickPayment` prioriza el aprobado que coincide con monto/moneda/referencia; un segundo aprobado se reembolsa (`payment_duplicate_refunded`).
+- Pruebas: 332 unitarios, `check:fast` y E2E (0 fugas) en verde. Sin E2E propio del huérfano/duplicado: cubierto por unitarios (pendiente E2E).

@@ -115,14 +115,11 @@ export class MercadoPagoPaymentService extends AbstractPaymentProvider<MercadoPa
     const reference = data?.external_reference
     if (!reference) return { status: "pending" as const, data: data ?? {} }
 
-    const payment = pickPayment(await this.client_.searchPayments(reference))
+    const expected = { amount: data.expected_amount ?? Number.NaN, currency: data.expected_currency ?? "", reference }
+    const payment = pickPayment(await this.client_.searchPayments(reference), expected)
     if (!payment) return { status: "pending" as const, data: data ?? {} }
 
-    const evaluated = evaluatePayment(payment, {
-      amount: data.expected_amount ?? Number.NaN,
-      currency: data.expected_currency ?? "",
-      reference,
-    })
+    const evaluated = evaluatePayment(payment, expected)
     const next: SessionData = { ...data, mp_payment_id: String(payment.id) }
     if (evaluated.problem) return { status: "error" as const, data: next }
     switch (mapStatus(payment.status)) {
@@ -166,6 +163,12 @@ export class MercadoPagoPaymentService extends AbstractPaymentProvider<MercadoPa
       throw new MedusaError(MedusaError.Types.INVALID_DATA, "El pago no tiene un id de Mercado Pago para reembolsar.")
     }
     try {
+      // El id guardado puede haber llegado en los datos que manda el cliente: se comprueba contra
+      // Mercado Pago que ese pago sea de esta sesión antes de devolver nada.
+      const payment = await this.client_.getPayment(data.mp_payment_id)
+      if (!data.external_reference || payment.external_reference !== data.external_reference) {
+        throw new MedusaError(MedusaError.Types.INVALID_DATA, "El pago a reembolsar no corresponde a esta sesión.")
+      }
       const amount = MathBN.convert(input.amount as never).toNumber()
       await this.client_.refund(data.mp_payment_id, amount, `refund-${data.mp_payment_id}-${Math.round(amount * 100)}`)
       return { data: input.data }

@@ -24,10 +24,17 @@ export async function GET(request: Request) {
   const target = returnTarget(result.body)
   if (target.kind === "page") return go(target.path)
 
-  const token = result.body.token ?? ""
-  if (!isOrderToken(token)) return go("/pago/pendiente")
-
   const store = await cookies()
+  const token = result.body.token ?? ""
+  if (!isOrderToken(token)) {
+    // El backend entrega el acceso una sola vez: si ya lo tenemos en la cookie, seguimos; si no, queda el link del email.
+    if (store.get(orderCookieName(target.orderId))) {
+      store.delete(CART_COOKIE)
+      return go(`/pedido/${target.orderId}`)
+    }
+    return go("/pago/pendiente")
+  }
+
   store.set(orderCookieName(target.orderId), token, orderCookieOptions(getEnv().backendUrl))
   store.delete(CART_COOKIE)
   return go(`/pedido/${target.orderId}`)

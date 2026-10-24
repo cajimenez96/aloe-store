@@ -36,7 +36,33 @@ export function decideSettlement(input: {
   }
 }
 
-/** Entre los pagos de una referencia, uno aprobado si lo hay; si no, el más nuevo. */
-export function pickPayment<T extends { status?: string }>(payments: T[]): T | null {
-  return payments.find((payment) => payment.status === "approved") ?? payments[0] ?? null
+/**
+ * Entre los pagos de una referencia, uno aprobado que coincide con lo esperado; si no hay,
+ * cualquier aprobado (para informar el desajuste); si no, el más nuevo. Así un pago ajeno
+ * más nuevo con otro monto no tapa al correcto.
+ */
+export function pickPayment<T extends MpPayment>(
+  payments: T[],
+  expected: { amount: number; currency: string; reference: string }
+): T | null {
+  const approved = payments.filter((payment) => payment.status === "approved")
+  const matching = approved.find((payment) => evaluatePayment(payment, expected).problem === null)
+  return matching ?? approved[0] ?? payments[0] ?? null
+}
+
+/**
+ * Un segundo pago aprobado para una referencia que ya cobró otro es un cobro doble: hay
+ * que devolverlo (planning.md, HU-25).
+ */
+export function isDuplicateApproval(input: { payment: MpPayment; capturedPaymentId: string | null }): boolean {
+  return (
+    input.payment.status === "approved" &&
+    input.capturedPaymentId !== null &&
+    String(input.payment.id) !== input.capturedPaymentId
+  )
+}
+
+/** Solo las referencias que arma esta tienda (id de sesión de pago de Medusa). */
+export function isOurReference(reference: string | null | undefined): reference is string {
+  return typeof reference === "string" && /^payses_[A-Za-z0-9]{10,}$/.test(reference)
 }

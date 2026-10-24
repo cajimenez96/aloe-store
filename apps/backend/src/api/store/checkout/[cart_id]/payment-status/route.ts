@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { issueOrderToken } from "../../../../../lib/order-access/issue"
+import { claimOrderToken } from "../../../../../lib/order-access/issue"
 import { MP_PROVIDER_ID } from "../../../../../lib/mercadopago/config"
 import { orderOfCart, settleSession } from "../../../../../lib/mercadopago/settle"
 
@@ -16,8 +16,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   const existing = await orderOfCart(req.scope, cartId)
   if (existing) {
-    const token = await issueOrderToken(req.scope, existing)
-    return res.json({ status: "approved", order_id: existing, token })
+    const token = await claimOrderToken(req.scope, existing)
+    return res.json({ status: "approved", order_id: existing, ...(token ? { token } : {}) })
   }
 
   const {
@@ -33,15 +33,18 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const outcome = await settleSession(req.scope, session.id, { requestId: req.requestId })
   switch (outcome.action) {
     case "captured": {
-      const token = await issueOrderToken(req.scope, outcome.orderId)
-      return res.json({ status: "approved", order_id: outcome.orderId, token })
+      const token = await claimOrderToken(req.scope, outcome.orderId)
+      return res.json({ status: "approved", order_id: outcome.orderId, ...(token ? { token } : {}) })
     }
     case "rejected":
       return res.json({ status: "rejected" })
     case "refunded_no_stock":
+    case "orphan_refunded":
       return res.json({ status: "refunded", code: "STOCK_INSUFFICIENT" })
     case "mismatch":
       return res.json({ status: "error", code: "PAYMENT_AMOUNT_MISMATCH" })
+    case "refund_failed":
+      return res.status(503).json({ type: "unexpected_state", code: "PAYMENT_PROVIDER_UNAVAILABLE", message: "Estamos revisando tu pago. Probá de nuevo en un momento." })
     case "unavailable":
       return res.status(503).json({ type: "unexpected_state", code: "PAYMENT_PROVIDER_UNAVAILABLE", message: "No pudimos consultar a Mercado Pago. Probá de nuevo en un momento." })
     default:

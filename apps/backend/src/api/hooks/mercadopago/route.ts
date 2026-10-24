@@ -42,6 +42,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const sessionId = payment.external_reference
     if (!sessionId) return res.status(200).json({ received: true, ignored: true })
     const outcome = await settleSession(req.scope, sessionId, { payment, requestId: req.requestId })
+    // Si el reembolso falló, se responde 5xx para que Mercado Pago reintente la notificación.
+    if (outcome.action === "refund_failed" || outcome.action === "unavailable") {
+      return res.status(503).json({ type: "unexpected_state", code: "PAYMENT_PROVIDER_UNAVAILABLE", message: "Reintentá más tarde." })
+    }
     return res.status(200).json({ received: true, action: outcome.action })
   } catch (error) {
     if (error instanceof MpUnavailableError) {
