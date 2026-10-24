@@ -108,3 +108,40 @@ test("el descuento de transferencia no pasa con tarjeta, ni armando la sesión p
   expect(await ordersCount()).toBe(before)
   expect((await simPayments(reference)).find((p) => p.id === paid.id)!.status).toBe("refunded")
 })
+
+test("pago de una sesión que Medusa descartó: se reembolsa y no se crea pedido", async () => {
+  const seed = loadSeed()
+  const cart = await newCardCart(seed, seed.variantId, `huerfano-${Date.now()}@ejemplo.com`, 2)
+  await chooseCard(cart)
+  const reference = await lastReference()
+
+  // Cambiar el total del carrito hace que Medusa descarte la sesión de Mercado Pago.
+  const applied = await call("POST", `/store/carts/${cart.id}/promotions`, cart.headers, { promo_codes: [seed.promoCode] })
+  expect(applied.status).toBe(200)
+
+  // El cliente ya había abierto la página de pago y paga el monto original.
+  const paid = (await sim("POST", "/__sim/payments", { external_reference: reference, status: "approved", amount: 4000, currency: "ARS" })).json
+  const before = await ordersCount()
+  const reply = await sendWebhook(paid.id)
+  expect(reply.status).toBe(200)
+  expect(reply.json.action).toBe("orphan_refunded")
+  expect(await ordersCount()).toBe(before)
+  expect((await simPayments(reference)).find((p) => p.id === paid.id)!.status).toBe("refunded")
+})
+
+test("segundo pago aprobado para un pedido ya cobrado: se reembolsa el duplicado", async () => {
+  const { url, reference } = await approvedCart(`duplicado-${Date.now()}@ejemplo.com`)
+  await payInSimulator(url, "approve")
+  const [first] = await simPayments(reference)
+  expect((await sendWebhook(first.id)).json.action).toBe("captured")
+  const before = await ordersCount()
+
+  const dup = (await sim("POST", "/__sim/payments", { external_reference: reference, status: "approved", amount: first.transaction_amount, currency: "ARS" })).json
+  const reply = await sendWebhook(dup.id)
+  expect(reply.status).toBe(200)
+  expect(reply.json.action).toBe("duplicate_refunded")
+  expect(await ordersCount()).toBe(before)
+  const all = await simPayments(reference)
+  expect(all.find((p) => p.id === dup.id)!.status).toBe("refunded")
+  expect(all.find((p) => p.id === first.id)!.status).toBe("approved")
+})
