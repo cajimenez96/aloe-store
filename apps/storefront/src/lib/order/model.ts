@@ -25,6 +25,7 @@ type OrderDetail = {
     reference: string | null
     due_at: string | null
     bank_account: Bank | null
+    status?: "paid" | "pending"
   }
 }
 
@@ -40,6 +41,8 @@ export type OrderView = {
   discount: number
   total: number
   paymentMethod: string | null
+  /** El pago ya se confirmó (comprobante aceptado o tarjeta aprobada). */
+  paid: boolean
   /** Datos para pagar; solo mientras el pedido por transferencia está pendiente. */
   transfer: { reference: string; dueAt: Date | null; bank: Bank } | null
 }
@@ -47,7 +50,8 @@ export type OrderView = {
 /** La vista del pedido: todos los montos los calculó Medusa. */
 export function buildOrderView(detail: OrderDetail): OrderView {
   const { order, payment } = detail
-  const pays = payment.method === "transfer" && payment.bank_account && payment.reference
+  const paid = payment.status === "paid"
+  const pays = !paid && payment.method === "transfer" && payment.bank_account && payment.reference
   return {
     id: order.id,
     number: order.display_id,
@@ -66,6 +70,7 @@ export function buildOrderView(detail: OrderDetail): OrderView {
     discount: order.discount_total,
     total: order.total,
     paymentMethod: payment.method,
+    paid,
     transfer: pays
       ? {
           reference: payment.reference as string,

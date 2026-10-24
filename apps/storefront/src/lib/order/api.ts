@@ -1,5 +1,6 @@
 import { cookies } from "next/headers"
 import { getEnv } from "../env"
+import type { ProofStatus } from "./proof"
 import { buildOrderView, isOrderId, isOrderToken, orderCookieName, type OrderView } from "./model"
 
 export type OrderResult =
@@ -27,5 +28,25 @@ export async function getOrder(orderId: string): Promise<OrderResult> {
     return { status: "ok", order: buildOrderView(await response.json()) }
   } catch {
     return { status: "unavailable" }
+  }
+}
+
+/** Estado del último comprobante del pedido, con el mismo token del cliente. */
+export async function getProofStatus(orderId: string): Promise<ProofStatus | null> {
+  if (!isOrderId(orderId)) return null
+  const token = (await cookies()).get(orderCookieName(orderId))?.value
+  if (!token || !isOrderToken(token)) return null
+
+  const { backendUrl, publishableKey } = getEnv()
+  try {
+    const response = await fetch(`${backendUrl}/store/order-access/${orderId}/transfer-proofs`, {
+      headers: { "x-publishable-api-key": publishableKey, "x-order-token": token },
+      cache: "no-store",
+    })
+    if (!response.ok) return null
+    const { transfer_proof } = (await response.json()) as { transfer_proof: ProofStatus | null }
+    return transfer_proof
+  } catch {
+    return null
   }
 }

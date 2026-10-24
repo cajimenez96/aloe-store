@@ -44,6 +44,8 @@ const nextConfig: NextConfig = {
     // (sp-01-medusa.md, punto 16): con un dominio real no se activa.
     dangerouslyAllowLocalIP: isLocalImagesHost,
   },
+  // El comprobante pesa hasta 5 MB y viaja por una Server Action (el valor por defecto es 1 MB).
+  experimental: { serverActions: { bodySizeLimit: "6mb" } },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

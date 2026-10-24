@@ -53,6 +53,13 @@ describe("buildOrderView", () => {
     expect(paid.transfer).toBeNull()
   })
 
+  it("un pedido pagado no muestra datos para pagar y figura como pagado", () => {
+    const paid = buildOrderView({ ...detail, payment: { ...detail.payment, status: "paid", due_at: null } })
+    expect(paid.paid).toBe(true)
+    expect(paid.transfer).toBeNull()
+    expect(buildOrderView(detail).paid).toBe(false)
+  })
+
   it("con tarjeta no hay datos de transferencia", () => {
     const card = buildOrderView({ ...detail, payment: { method: "card", reference: null, due_at: null, bank_account: null } })
     expect(card.paymentMethod).toBe("card")

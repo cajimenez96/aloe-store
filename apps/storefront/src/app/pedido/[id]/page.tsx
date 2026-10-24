@@ -2,7 +2,9 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { Suspense } from "react"
 import { Button } from "@/components/ui/button"
-import { getOrder } from "@/lib/order/api"
+import { ProofUpload } from "@/components/order/proof-upload"
+import { getOrder, getProofStatus } from "@/lib/order/api"
+import { proofStatusLabel } from "@/lib/order/proof"
 import { formatPrice } from "@/lib/price"
 
 export const metadata: Metadata = {
@@ -36,6 +38,9 @@ async function Order({ params }: { params: Promise<{ id: string }> }) {
   }
 
   const { order } = result
+  const proof = order.transfer ? await getProofStatus(order.id) : null
+  const proofLabel = proofStatusLabel(proof)
+  const canUpload = Boolean(order.transfer) && proof?.status !== "pending_review" && proof?.status !== "accepted"
   const money = (amount: number) => formatPrice(amount, order.currencyCode)
 
   return (
@@ -45,7 +50,7 @@ async function Order({ params }: { params: Promise<{ id: string }> }) {
           {order.firstName ? `¡Gracias por tu compra, ${order.firstName}!` : "¡Gracias por tu compra!"}
         </h1>
         <p>
-          Pedido <strong>#{order.number}</strong> · {order.status === "pending" ? "Pendiente de pago" : order.status}
+          Pedido <strong>#{order.number}</strong> · {order.paid ? "Pagado" : order.status === "pending" ? "Pendiente de pago" : order.status}
         </p>
       </header>
 
@@ -76,9 +81,15 @@ async function Order({ params }: { params: Promise<{ id: string }> }) {
           </dl>
           <ol className="list-decimal pl-5 text-sm">
             <li>Transferí el monto exacto e indicá la referencia.</li>
-            <li>Guardá el comprobante de tu banco.</li>
-            <li>Cuando el pago se acredite, te avisamos por email.</li>
+            <li>Subí acá el comprobante de tu banco.</li>
+            <li>Cuando revisemos el pago, te avisamos por email.</li>
           </ol>
+          {proofLabel && (
+            <p role="status" className="rounded-md border border-hairline p-3 text-sm">
+              {proofLabel}
+            </p>
+          )}
+          {canUpload && <ProofUpload orderId={order.id} />}
           <p className="text-sm text-shade-60">
             Si no se acredita antes del vencimiento, el pedido se cancela y el stock se libera. Te enviamos estos datos
             por email.
