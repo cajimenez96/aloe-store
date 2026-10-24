@@ -76,3 +76,21 @@ describe("renderEmail", () => {
     }
   })
 })
+
+describe("plantilla transfer-order (HU-27)", () => {
+  const data = { ...TEMPLATES["transfer-order"].sample }
+
+  it("lleva los datos bancarios, el monto, la referencia, el vencimiento y el enlace", () => {
+    const email = renderEmail("transfer-order", data, shop)
+    expect(email.subject).toContain(data.orderNumber)
+    for (const key of ["holder", "cbu", "alias", "bank", "total", "reference", "dueDate", "link"]) {
+      expect(email.text).toContain(data[key])
+      expect(email.html).toContain(escapeHtml(data[key]))
+    }
+  })
+
+  it("escapa el nombre del cliente", () => {
+    const { html } = renderEmail("transfer-order", { ...data, name: "<script>x</script>" }, shop)
+    expect(html).not.toContain("<script>x</script>")
+  })
+})

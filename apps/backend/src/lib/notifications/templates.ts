@@ -35,6 +35,34 @@ export const TEMPLATES = {
       lines: [`Hola ${data.name}`, data.message],
     }),
   },
+  "transfer-order": {
+    sample: {
+      name: "Ana",
+      orderNumber: "1042",
+      total: "$ 27.000",
+      holder: "Nombre del comercio",
+      cbu: "0000000000000000000000",
+      alias: "comercio.alias",
+      bank: "Banco de ejemplo",
+      reference: "PED-1042",
+      dueDate: "25/10/2026 18:30",
+      link: "http://localhost:3000/pedido/order_01/acceso?token=ejemplo",
+    },
+    render: (data) => ({
+      subject: `Pedido #${data.orderNumber}: datos para transferir`,
+      lines: [
+        `Hola ${data.name}`,
+        `Recibimos tu pedido #${data.orderNumber}. Para pagarlo, transferí ${data.total} a esta cuenta:`,
+        `Titular: ${data.holder}`,
+        `CBU o CVU: ${data.cbu}`,
+        `Alias: ${data.alias}`,
+        `Banco: ${data.bank}`,
+        `Referencia: ${data.reference}`,
+        `Tenés hasta el ${data.dueDate} para transferir y subir el comprobante. Pasado ese plazo, el pedido se cancela y el stock se libera.`,
+        `Seguí tu pedido y subí el comprobante acá: ${data.link}`,
+      ],
+    }),
+  },
 } satisfies Record<string, TemplateDefinition>
 
 export type TemplateName = keyof typeof TEMPLATES

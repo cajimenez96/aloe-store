@@ -4,6 +4,7 @@ import {
   defineMiddlewares,
 } from '@medusajs/framework/http'
 import { enforceRole } from '../lib/roles/guard'
+import { blockNativeOrderRoutes } from '../lib/order-access/block-native'
 import { enforceSingleCategoryOnAdd } from '../lib/single-category/middleware'
 import { scrubTransferCode } from '../lib/transfer-discount/scrub-middleware'
 import { validateImageUploads } from '../lib/uploads/validate-image-uploads'
@@ -22,6 +23,17 @@ export default defineMiddlewares({
           },
         }),
       ],
+    },
+    {
+      // Los pedidos de la tienda se ven solo con el token y se confirman solo
+      // por /store/checkout/:cart_id/complete (SEC-24).
+      matcher: '/store/orders*',
+      middlewares: [blockNativeOrderRoutes],
+    },
+    {
+      method: ['POST'],
+      matcher: '/store/carts/:id/complete',
+      middlewares: [blockNativeOrderRoutes],
     },
     {
       // El código de la promoción de transferencia nunca sale por la API de
