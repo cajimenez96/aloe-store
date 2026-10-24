@@ -2,6 +2,8 @@ import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/frame
 import { TRANSFER_PROOF_MODULE } from "../../../../../modules/transfer-proof"
 import type TransferProofModuleService from "../../../../../modules/transfer-proof/service"
 import { notifyProofRejected } from "../../../../../lib/notifications/order-emails"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { logEvent } from "../../../../../lib/logging/log"
 import { canReview, validateRejectionReason } from "../../../../../lib/transfer-proofs/review"
 
 /**
@@ -37,6 +39,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     reviewed_at: new Date(),
   })
 
+  logEvent(req.scope.resolve(ContainerRegistrationKeys.LOGGER), "info", "transfer_proof_rejected", { actor_id: req.auth_context?.actor_id ?? "desconocido", order_id: proof.order_id }, req.requestId)
   await notifyProofRejected(req.scope, proof.order_id, reason.reason)
   res.json({ transfer_proof: { id: proof.id, status: "rejected" } })
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { placeOrder } from "@/lib/checkout/actions"
@@ -28,6 +29,17 @@ export function ConfirmOrder({ blocker }: ConfirmOrderProps) {
         {pending ? "Confirmando…" : "Confirmar pedido"}
       </Button>
       {blocker && <p className="text-sm text-shade-60">{blocker}</p>}
+      <p className="text-sm text-shade-60">
+        Al confirmar aceptás los{" "}
+        <Link href="/terminos" className="underline underline-offset-4">
+          términos y condiciones
+        </Link>{" "}
+        y la{" "}
+        <Link href="/privacidad" className="underline underline-offset-4">
+          política de privacidad
+        </Link>
+        .
+      </p>
       <div role="alert" className="min-h-5 text-sm">
         {error}
       </div>

@@ -10,6 +10,7 @@ import {
   createPaymentCollectionForCartWorkflow,
   createPaymentSessionsWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { logEvent } from "../../../../lib/logging/log"
 import { dayBounds, summarizeSales } from "../../../../lib/pos/day"
 import { parseSaleInput } from "../../../../lib/pos/sale"
 import { MANUAL_PROVIDER_ID } from "../../../../lib/transfer-discount/guard"
@@ -125,6 +126,8 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       items: (order.items ?? []).flatMap((item) => (item ? [{ id: item.id, quantity: MathBN.convert(item.quantity as never).toNumber() }] : [])),
     },
   })
+
+  logEvent(req.scope.resolve(ContainerRegistrationKeys.LOGGER), "info", "pos_sale_registered", { actor_id: actor ?? "desconocido", order_id: order.id, payment_method: sale.paymentMethod }, req.requestId)
 
   res.status(201).json({
     sale: {

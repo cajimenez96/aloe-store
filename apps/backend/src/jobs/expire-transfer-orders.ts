@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { cancelOrderWorkflow } from "@medusajs/medusa/core-flows"
 import { TRANSFER_PROOF_MODULE } from "../modules/transfer-proof"
 import type TransferProofModuleService from "../modules/transfer-proof/service"
+import { logEvent } from "../lib/logging/log"
 import { shouldExpire } from "../lib/transfer-proofs/expiry"
 
 /**
@@ -35,11 +36,12 @@ export default async function expireTransferOrders(container: MedusaContainer) {
         metadata: { ...metadata, cancel_reason: "expired" },
       })
       await cancelOrderWorkflow(container).run({ input: { order_id: order.id } })
-      logger.info(JSON.stringify({ event: "order_auto_canceled", order_id: order.id, reason: "expired" }))
+      logEvent(logger, "info", "order_auto_canceled", { order_id: order.id, reason: "expired" })
     } catch (error) {
-      logger.error(
-        JSON.stringify({ event: "order_auto_cancel_failed", order_id: order.id, reason: error instanceof Error ? error.message : "desconocido" })
-      )
+      logEvent(logger, "error", "order_auto_cancel_failed", {
+        order_id: order.id,
+        reason: error instanceof Error ? error.message : "desconocido",
+      })
     }
   }
 }

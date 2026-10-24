@@ -35,14 +35,15 @@ module.exports = defineConfig({
       },
     },
     {
-      // MVP0: el proveedor local solo registra el aviso en la terminal, no envía
-      // nada (planning.md, TEC-02). El proveedor real se configura al desplegar.
+      // MVP0: el proveedor no envía nada; deja constancia en el log sin datos
+      // personales (planning.md, TEC-02 y HU-49). `LOG_EMAIL_BODIES=true` agrega el
+      // texto para probar los enlaces en desarrollo. El proveedor real va al desplegar.
       resolve: "@medusajs/medusa/notification",
       options: {
         providers: [
           {
-            resolve: "@medusajs/medusa/notification-local",
-            id: "local",
+            resolve: "./src/modules/log-notification",
+            id: "log",
             options: { channels: ["email"] },
           },
         ],

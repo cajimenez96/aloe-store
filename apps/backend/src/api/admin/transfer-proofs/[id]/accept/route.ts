@@ -4,6 +4,7 @@ import { capturePaymentWorkflow } from "@medusajs/medusa/core-flows"
 import { TRANSFER_PROOF_MODULE } from "../../../../../modules/transfer-proof"
 import type TransferProofModuleService from "../../../../../modules/transfer-proof/service"
 import { notifyOrderPaid } from "../../../../../lib/notifications/order-emails"
+import { logEvent } from "../../../../../lib/logging/log"
 import { canReview } from "../../../../../lib/transfer-proofs/review"
 
 /**
@@ -52,6 +53,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     reviewed_at: new Date(),
   })
 
+  logEvent(req.scope.resolve(ContainerRegistrationKeys.LOGGER), "info", "payment_captured", { actor_id: req.auth_context?.actor_id ?? "desconocido", order_id: proof.order_id, via: "transfer_proof" }, req.requestId)
   await notifyOrderPaid(req.scope, proof.order_id)
   res.json({ transfer_proof: { id: proof.id, status: "accepted" } })
 }

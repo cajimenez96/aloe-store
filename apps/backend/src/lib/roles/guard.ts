@@ -1,3 +1,4 @@
+import { logEvent } from "../logging/log"
 import type {
   AuthenticatedMedusaRequest,
   MedusaNextFunction,
@@ -76,14 +77,12 @@ export async function enforceRole(
   }
 
   // SEC-95: acceso rechazado por permisos. Sin query ni datos personales.
-  req.scope.resolve(ContainerRegistrationKeys.LOGGER).warn(
-    JSON.stringify({
-      event: "role_denied",
-      user_id: auth.actor_id,
-      role,
-      method: req.method,
-      path,
-    })
+  logEvent(
+    req.scope.resolve(ContainerRegistrationKeys.LOGGER),
+    "warn",
+    "role_denied",
+    { user_id: auth.actor_id, role, method: req.method, path },
+    req.requestId
   )
   res.status(403).json(DENIED_BODY)
 }

@@ -1,6 +1,7 @@
 import type { MedusaNextFunction, MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { clientIp, trustedHopsFromEnv } from "../order-access/ip"
+import { logEvent } from "../logging/log"
 import { hashIp } from "../order-access/limits"
 import { type Limits, RateLimiter, parseLimits } from "./limiter"
 
@@ -28,13 +29,12 @@ export function rateLimit(bucket: keyof Limits) {
     if (result.allowed) return next()
 
     const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
-    logger.warn(
-      JSON.stringify({
-        event: "rate_limited",
-        bucket,
-        path: req.path.split("/").slice(0, 3).join("/"),
-        client: (hashIp(ip) ?? "").slice(0, 12),
-      })
+    logEvent(
+      logger,
+      "warn",
+      "rate_limited",
+      { bucket, path: req.path.split("/").slice(0, 3).join("/"), client: (hashIp(ip) ?? "").slice(0, 12) },
+      req.requestId
     )
     res.setHeader("Retry-After", String(result.retryAfterSeconds))
     res.status(429).json({

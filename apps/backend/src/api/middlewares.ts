@@ -6,6 +6,7 @@ import {
 import { enforceRole } from '../lib/roles/guard'
 import { blockNativeOrderRoutes } from '../lib/order-access/block-native'
 import { enforceSingleCategoryOnAdd } from '../lib/single-category/middleware'
+import { auditAdminAction, auditLogin } from '../lib/logging/audit'
 import { rateLimit } from '../lib/rate-limit/middleware'
 import { receiveProofUpload } from '../lib/transfer-proofs/upload-middleware'
 import { scrubTransferCode } from '../lib/transfer-discount/scrub-middleware'
@@ -30,7 +31,7 @@ export default defineMiddlewares({
       // Login del panel y creación de carritos y pedidos (SEC-17, HU-43).
       method: ['POST'],
       matcher: '/auth/user*',
-      middlewares: [rateLimit('login')],
+      middlewares: [rateLimit('login'), auditLogin],
     },
     {
       method: ['POST'],
@@ -65,6 +66,22 @@ export default defineMiddlewares({
       matcher: '/store/order-access/:id/transfer-proofs',
       bodyParser: false,
       middlewares: [receiveProofUpload],
+    },
+    {
+      // Acciones sensibles del panel con el usuario que las hizo (SEC-95).
+      method: ['POST'],
+      matcher: '/admin/orders/:id/cancel',
+      middlewares: [auditAdminAction('order_canceled')],
+    },
+    {
+      method: ['POST'],
+      matcher: '/admin/payments/:id/refund',
+      middlewares: [auditAdminAction('payment_refunded')],
+    },
+    {
+      method: ['POST'],
+      matcher: '/admin/payments/:id/capture',
+      middlewares: [auditAdminAction('payment_captured')],
     },
     {
       // Un producto va en una sola categoría (HU-07).

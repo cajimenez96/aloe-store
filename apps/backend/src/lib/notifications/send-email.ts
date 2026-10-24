@@ -1,5 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { logEvent } from "../logging/log"
 import { withRetry } from "./retry"
 import { renderEmail, type ShopInfo, type TemplateName } from "./templates"
 
@@ -56,25 +57,19 @@ export async function sendEmail(
         attempts: ATTEMPTS,
         sleep: options.sleep,
         onFailure: (attempt, error) =>
-          logger.error(
-            JSON.stringify({
-              event: "email_failed",
+          logEvent(logger, "error", "email_failed", {
               template: message.template,
               attempt,
               reason: error instanceof Error ? error.message : "desconocido",
-            })
-          ),
+            }),
       }
     )
     return true
   } catch (error) {
-    logger.error(
-      JSON.stringify({
-        event: "email_gave_up",
-        template: message.template,
-        reason: error instanceof Error ? error.message : "desconocido",
-      })
-    )
+    logEvent(logger, "error", "email_gave_up", {
+      template: message.template,
+      reason: error instanceof Error ? error.message : "desconocido",
+    })
     return false
   }
 }
