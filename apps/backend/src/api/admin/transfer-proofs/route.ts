@@ -6,6 +6,7 @@ import { proofSecret } from "../../../lib/transfer-proofs/secret"
 import { signProofLink } from "../../../lib/transfer-proofs/signed-link"
 
 const STATUSES = ["pending_review", "accepted", "rejected"]
+const ORDER_ID = /^[A-Za-z0-9_]{1,100}$/
 
 /**
  * Cola de comprobantes para el panel, del más antiguo al más nuevo (planning.md,
@@ -13,11 +14,19 @@ const STATUSES = ["pending_review", "accepted", "rejected"]
  * archivo ya se usó en otro pedido.
  */
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const status = typeof req.query.status === "string" && STATUSES.includes(req.query.status) ? req.query.status : "pending_review"
+  // `status=all` y `order_id` sirven al bloque del detalle del pedido (HU-32): todos los comprobantes de un pedido.
+  const orderId = typeof req.query.order_id === "string" && ORDER_ID.test(req.query.order_id) ? req.query.order_id : null
+  const status =
+    req.query.status === "all" && orderId
+      ? null
+      : typeof req.query.status === "string" && STATUSES.includes(req.query.status)
+        ? req.query.status
+        : "pending_review"
   const proofs = req.scope.resolve<TransferProofModuleService>(TRANSFER_PROOF_MODULE)
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const list = await proofs.listTransferProofs({ status } as never, { order: { created_at: "ASC" }, take: 100 })
+  const filters = { ...(status ? { status } : {}), ...(orderId ? { order_id: orderId } : {}) }
+  const list = await proofs.listTransferProofs(filters as never, { order: { created_at: "ASC" }, take: 100 })
 
   const orderIds = [...new Set(list.map((proof) => proof.order_id))]
   const { data: orders } = orderIds.length
