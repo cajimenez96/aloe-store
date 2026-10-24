@@ -1,6 +1,11 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+import { getEnv } from "../env"
+import { CART_COOKIE } from "../cart/model"
+import { isOrderId, isOrderToken, orderCookieName, orderCookieOptions } from "../order/model"
 import type { CartActionResult } from "../cart/actions"
 import { cartFetch, readCartId } from "../cart/api"
 import { getShippingChoices } from "./api"
@@ -103,4 +108,30 @@ export async function choosePaymentMethod(method: unknown): Promise<CartActionRe
   })
   revalidatePath("/checkout")
   return result.ok ? { ok: true } : { ok: false, error: result.error }
+}
+
+/**
+ * Confirma el pedido por transferencia (planning.md, HU-23 y HU-27). El token de
+ * acceso llega una sola vez: se guarda en una cookie HttpOnly propia del pedido y
+ * el carrito deja de existir en el navegador.
+ */
+export async function placeOrder(): Promise<CartActionResult> {
+  const cartId = await readCartId()
+  if (!cartId) return { ok: false, error: { code: "CART_ERROR", message: "Tu carrito está vacío." } }
+
+  const result = await cartFetch<{ order_id: string; token: string }>(`/store/checkout/${cartId}/complete`, {
+    method: "POST",
+  })
+  if (!result.ok) return { ok: false, error: result.error }
+
+  const { order_id, token } = result.body
+  if (!isOrderId(order_id) || !isOrderToken(token)) {
+    return { ok: false, error: { code: "CART_ERROR", message: "No pudimos confirmar el pedido. Probá de nuevo." } }
+  }
+
+  const store = await cookies()
+  store.set(orderCookieName(order_id), token, orderCookieOptions(getEnv().backendUrl))
+  store.delete(CART_COOKIE)
+  revalidatePath("/", "layout")
+  redirect(`/pedido/${order_id}`)
 }

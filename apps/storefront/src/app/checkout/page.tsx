@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
+import { ConfirmOrder } from "@/components/checkout/confirm-order";
 import { PaymentMethod } from "@/components/checkout/payment-method";
 import { getCart } from "@/lib/cart/api";
 import { buildCartView } from "@/lib/cart/model";
 import { getTransferPercent } from "@/lib/data";
+import { confirmBlocker } from "@/lib/checkout/blocker";
 import { getShippingChoices } from "@/lib/checkout/api";
 import { formatPrice } from "@/lib/price";
 
@@ -28,19 +30,22 @@ async function Checkout() {
     raw.metadata?.payment_method === "transfer"
       ? raw.metadata.payment_method
       : null;
-  // Con transferencia el total de Medusa ya trae el descuento; el de lista se reconstruye solo para mostrarlo.
-  const listTotal =
-    method === "transfer" && transferPercent > 0
-      ? cart.total / (1 - transferPercent / 100)
-      : cart.total;
-  const chosen = choices.find((choice) => choice.id === raw.shipping_methods?.[0]?.shipping_option_id)
+  const chosen = choices.find(
+    (choice) => choice.id === raw.shipping_methods?.[0]?.shipping_option_id,
+  );
   // El costo del envío está por fuera del sistema: se coordina con el cliente.
   const shippingLabel = !chosen
     ? "Elegí la entrega"
     : chosen.kind === "delivery"
       ? "A coordinar"
-      : "Sin costo"
+      : "Sin costo";
   const address = raw.shipping_address;
+  const blocker = confirmBlocker({
+    email: raw.email,
+    hasShippingMethod: Boolean(chosen),
+    hasAddressName: Boolean(address?.first_name),
+    method,
+  });
   const selected = raw.shipping_methods?.[0]?.shipping_option_id ?? undefined;
 
   return (
@@ -70,10 +75,11 @@ async function Checkout() {
           initial={method}
           total={cart.total}
           itemsSubtotal={cart.subtotal}
-        shippingTotal={cart.shippingTotal}
+          shippingTotal={cart.shippingTotal}
           currencyCode={cart.currencyCode}
           transferPercent={transferPercent}
         />
+        <ConfirmOrder blocker={blocker} />
       </div>
       <aside
         aria-label="Resumen del pedido"
@@ -98,9 +104,7 @@ async function Checkout() {
           </div>
           <div className="flex justify-between">
             <dt>Envío</dt>
-            <dd>
-              {shippingLabel}
-            </dd>
+            <dd>{shippingLabel}</dd>
           </div>
           <div className="flex justify-between text-base">
             <dt>Total</dt>

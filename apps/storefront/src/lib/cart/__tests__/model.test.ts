@@ -170,3 +170,22 @@ describe("findUnavailableLines", () => {
     expect(findUnavailableLines(lines, new Set(["prod_1"]))).toHaveLength(1)
   })
 })
+
+describe("parseCartError · confirmar el pedido", () => {
+  it("traduce los errores de la confirmación sin dejar pasar el mensaje interno", () => {
+    const cases: Record<string, RegExp> = {
+      PENDING_ORDERS_LIMIT: /pedidos pendientes/i,
+      PAYMENT_METHOD_REQUIRED: /cómo querés pagar/i,
+      PAYMENT_PROVIDER_UNAVAILABLE: /no está disponible/i,
+      CHECKOUT_INCOMPLETE: /datos|entrega/i,
+      CART_ALREADY_COMPLETED: /ya fue confirmado/i,
+      DISCOUNT_PAYMENT_MISMATCH: /transferencia/i,
+    }
+    for (const [code, pattern] of Object.entries(cases)) {
+      const error = parseCartError({ code, message: "detalle interno select * from x" })
+      expect(error.code).toBe(code)
+      expect(error.message).toMatch(pattern)
+      expect(error.message).not.toContain("select")
+    }
+  })
+})

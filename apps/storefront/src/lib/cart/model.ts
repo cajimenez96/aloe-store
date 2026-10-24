@@ -132,6 +132,24 @@ export function parseCartError(body: { code?: unknown; message?: unknown }): Car
         code: "VARIANT_UNAVAILABLE",
         message: "Esta combinación ya no está disponible. Elegí otra.",
       }
+    case "PENDING_ORDERS_LIMIT":
+      return {
+        code: String(body.code),
+        message: "Ya tenés pedidos pendientes de pago. Completá o esperá el vencimiento de uno anterior.",
+      }
+    case "PAYMENT_METHOD_REQUIRED":
+      return { code: String(body.code), message: "Elegí cómo querés pagar para confirmar el pedido." }
+    case "PAYMENT_PROVIDER_UNAVAILABLE":
+      return { code: String(body.code), message: "Ese medio de pago no está disponible por ahora. Probá con otro." }
+    case "CHECKOUT_INCOMPLETE":
+      return { code: String(body.code), message: "Completá tus datos y la forma de entrega para confirmar." }
+    case "CART_ALREADY_COMPLETED":
+      return { code: String(body.code), message: "Este pedido ya fue confirmado. Revisá tu email." }
+    case "DISCOUNT_PAYMENT_MISMATCH":
+      return {
+        code: String(body.code),
+        message: "El descuento por transferencia solo vale si pagás por transferencia. Volvé a elegir el medio de pago.",
+      }
     default:
       return {
         code: "CART_ERROR",
