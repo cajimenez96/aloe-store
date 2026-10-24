@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { buildCsp } from "./src/lib/csp";
 
 // Host de las imágenes de producto, por ejemplo "localhost:9000" (arquitectura.md, 17.2).
 const imagesHost = process.env.NEXT_PUBLIC_IMAGES_HOST;
@@ -21,9 +22,17 @@ function imagePatterns(): NonNullable<NextConfig["images"]>["remotePatterns"] {
   ];
 }
 
-// Encabezados de seguridad básicos (seguridad.md, SEC-60). La política de
-// seguridad de contenido (CSP) completa se termina en HU-44 y HSTS al desplegar.
+// Encabezados de seguridad (seguridad.md, SEC-60), con la política de contenido
+// de HU-44. HSTS se agrega al desplegar con HTTPS.
 const securityHeaders = [
+  {
+    key: "Content-Security-Policy",
+    value: buildCsp({
+      backendUrl: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "",
+      imagesHost: imagesHost ?? "",
+      isDev: process.env.NODE_ENV === "development",
+    }),
+  },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
