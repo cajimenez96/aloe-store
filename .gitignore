@@ -18,6 +18,7 @@ coverage
 
 # Next.js
 **/.next/
+**/.next-e2e/
 **/out/
 
 # Production
@@ -66,3 +67,9 @@ Thumbs.db
 .playwright-mcp/
 storybook-static/
 *.tsbuildinfo
+
+# Pruebas de punta a punta
+e2e/.seed.json
+e2e/test-results/
+reports/.e2e-env.json
+/test-results/

@@ -1,0 +1,34 @@
+{
+  "scenario": "e2e-produccion",
+  "generatedAt": "2026-10-24T19:36:08.942Z",
+  "gitCommit": "5bd1555",
+  "workingTreeClean": false,
+  "environment": {
+    "backend": "medusa start (build de producción)",
+    "storefront": "next start (build de producción)",
+    "node": "v22.23.4"
+  },
+  "playwright": {
+    "expected": 7,
+    "unexpected": 0,
+    "skipped": 1,
+    "flaky": 0
+  },
+  "logs": {
+    "lines": 289,
+    "jsonLines": 284,
+    "allApplicationLogsJson": true,
+    "runtimeWarnings": 5,
+    "unexpectedNonJson": [],
+    "personalDataLeaks": [],
+    "eventsSeen": [
+      "login_success",
+      "email_logged",
+      "payment_captured",
+      "transfer_proof_rejected",
+      "role_denied",
+      "pos_sale_registered"
+    ]
+  },
+  "passed": true
+}

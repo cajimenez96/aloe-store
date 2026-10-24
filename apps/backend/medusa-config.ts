@@ -1,4 +1,5 @@
 import { loadEnv, defineConfig } from "@medusajs/framework/utils"
+import { sessionCookieOptions } from "./src/lib/config/session"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -9,6 +10,8 @@ module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     redisUrl,
+    // Solo para correr el build de producción por http en local (README: INSECURE_SESSION_COOKIE).
+    cookieOptions: sessionCookieOptions(process.env),
     http: {
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,

@@ -18,7 +18,8 @@
     "db:migrate": "npm run db:migrate --workspace @aloe/backend",
     "setup:store": "npm run setup:store --workspace @aloe/backend",
     "user:role": "npm run user:role --workspace @aloe/backend --",
-    "email:preview": "npm run email:preview --workspace @aloe/backend"
+    "email:preview": "npm run email:preview --workspace @aloe/backend",
+    "e2e": "node scripts/e2e/run.mjs"
   },
   "overrides": {
     "tsconfig-paths": "^4.2.0",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@medusajs/eslint-plugin": "2.22.0",
+    "@playwright/test": "1.64.1",
     "eslint": "^9.39.4",
     "jiti": "^2.7.0",
     "prettier": "^3.2.5",

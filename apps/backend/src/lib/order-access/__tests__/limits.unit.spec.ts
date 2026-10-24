@@ -1,4 +1,4 @@
-import { hashIp, pendingLimitReached } from "../limits"
+import { hashIp, parsePendingLimits, pendingLimitReached } from "../limits"
 
 const now = new Date("2026-10-24T12:00:00Z")
 const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000)
@@ -79,5 +79,25 @@ describe("hashIp", () => {
 
   it("sin IP devuelve un valor que no agrupa pedidos de distintos clientes", () => {
     expect(hashIp(undefined)).toBeNull()
+  })
+})
+
+describe("límites configurables (HU-43)", () => {
+  const orders = (n: number, over: Record<string, unknown> = {}) => Array.from({ length: n }, () => order(over))
+
+  it("sin configuración rigen 2 por email y 3 por IP", () => {
+    expect(parsePendingLimits(undefined, undefined)).toEqual({ perEmail: 2, perIp: 3 })
+  })
+
+  it("se pueden cambiar sin tocar el código", () => {
+    expect(parsePendingLimits("5", "10")).toEqual({ perEmail: 5, perIp: 10 })
+    expect(pendingLimitReached({ orders: orders(4), email: "ana@ejemplo.com", ipHash: "x", now, limits: { perEmail: 5, perIp: 10 } })).toBeNull()
+    expect(pendingLimitReached({ orders: orders(5), email: "ana@ejemplo.com", ipHash: "x", now, limits: { perEmail: 5, perIp: 10 } })).toBe("email")
+  })
+
+  it("un valor inválido se ignora y queda el predeterminado", () => {
+    for (const bad of ["0", "-1", "abc", "1.5", "100000", ""]) {
+      expect(parsePendingLimits(bad, bad)).toEqual({ perEmail: 2, perIp: 3 })
+    }
   })
 })

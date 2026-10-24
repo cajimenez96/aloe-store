@@ -123,3 +123,11 @@ Conventional commits con el detalle en español: `feat: se agrega filtro por sub
 - `PROOFS_DIR` (opcional): carpeta privada de los comprobantes. Por defecto `apps/backend/storage/private/proofs`, fuera de `static/`.
 - `LOG_LEVEL` (por defecto `http`): nivel de los logs. Con `NODE_ENV=production` salen en JSON, con fecha e identificador de solicitud. Los eventos de seguridad (logins, permisos, capturas, reembolsos, cancelaciones, límites) llevan el usuario y nunca datos personales.
 - `LOG_EMAIL_BODIES` (solo desarrollo): con `true` el log de emails incluye el texto, para copiar el enlace de un pedido al probar en local. Por defecto solo registra plantilla, destinatario enmascarado y asunto.
+- `MAX_PENDING_PER_EMAIL` (por defecto `2`) y `MAX_PENDING_PER_IP` (por defecto `3`): pedidos por transferencia pendientes por email y por IP en 24 horas (SEC-40). Un valor inválido deja el predeterminado.
+- `INSECURE_SESSION_COOKIE` (solo pruebas locales): con `true` la cookie de sesión del panel no lleva `Secure`, para poder iniciar sesión en el build de producción por http (`npm run e2e`). El backend se niega a arrancar con esta variable si `MEDUSA_BACKEND_URL` no es `http://localhost:<puerto>`: nunca va en un despliegue.
+
+### Pruebas de punta a punta
+
+`npm run e2e` (necesita `docker compose up -d`) compila el backend y el storefront en modo producción, los levanta en los puertos 9300 y 3100 con una base de datos descartable, corre los escenarios de Playwright (`e2e/tests`), comprueba que el log del servidor no tenga datos personales y lo borra todo. Deja el reporte en `reports/e2e-produccion.json`. No toca la base de desarrollo ni el `.next` de `npm run dev`. Usa el Chromium que ya tengas en la caché de Playwright; si no hay, `npx playwright install chromium`. `E2E_KEEP=1 npm run e2e` deja el entorno levantado para depurar.
+
+`node scripts/concurrency/last-unit.mjs` (contra un backend de pruebas) corre la prueba de la última unidad de stock; `scripts/k6/last-unit.js` es el mismo escenario para k6.

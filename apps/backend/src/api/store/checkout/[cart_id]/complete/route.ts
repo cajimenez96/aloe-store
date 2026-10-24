@@ -5,7 +5,7 @@ import { sendEmail } from "../../../../../lib/notifications/send-email"
 import { fail } from "../../../../../lib/order-access/http"
 import { isStockConflict } from "../../../../../lib/cart-limits/conflict"
 import { clientIp, trustedHopsFromEnv } from "../../../../../lib/order-access/ip"
-import { hashIp, normalizeEmail, pendingLimitReached } from "../../../../../lib/order-access/limits"
+import { hashIp, normalizeEmail, parsePendingLimits, pendingLimitReached } from "../../../../../lib/order-access/limits"
 import { addTokenHash } from "../../../../../lib/order-access/hashes"
 import { generateToken, hashToken } from "../../../../../lib/order-access/token"
 import { mergeSettings } from "../../../../../lib/store-settings/validation"
@@ -103,6 +103,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       const limit = pendingLimitReached({
         email: cart.email as string,
         ipHash,
+        limits: parsePendingLimits(process.env.MAX_PENDING_PER_EMAIL, process.env.MAX_PENDING_PER_IP),
         orders: recent.map((order) => ({
           email: order.email,
           status: order.status,
