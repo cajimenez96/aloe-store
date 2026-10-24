@@ -99,3 +99,17 @@ export async function notifyAdminProofReceived(container: MedusaContainer, order
     data: { orderNumber: String(orderNumber), link: `${backend}/app/comprobantes` },
   })
 }
+
+/** Pago devuelto porque se agotó el stock entre el pago y la confirmación (planning.md, HU-24). */
+export async function notifyPaymentRefunded(container: MedusaContainer, cartId: string, amount: number) {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const {
+    data: [cart],
+  } = await query.graph({ entity: "cart", fields: ["id", "email", "shipping_address.first_name"], filters: { id: cartId } })
+  if (!cart?.email) return
+  await sendEmail(container, {
+    to: cart.email,
+    template: "payment-refunded",
+    data: { name: cart.shipping_address?.first_name ?? "", amount: formatMoney(amount) },
+  })
+}

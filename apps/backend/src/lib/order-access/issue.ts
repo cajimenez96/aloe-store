@@ -8,7 +8,7 @@ import { generateToken, hashToken } from "./token"
  * se guarda el hash, cada email emite su propio token y los anteriores siguen
  * valiendo (seguridad.md, SEC-24).
  */
-export async function issueOrderLink(container: MedusaContainer, orderId: string): Promise<string | null> {
+export async function issueOrderToken(container: MedusaContainer, orderId: string): Promise<string | null> {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const {
     data: [order],
@@ -20,6 +20,13 @@ export async function issueOrderLink(container: MedusaContainer, orderId: string
     metadata: addTokenHash((order.metadata ?? {}) as Record<string, unknown>, hashToken(token)),
   })
 
+  return token
+}
+
+/** Enlace del email al pedido, con un token nuevo. */
+export async function issueOrderLink(container: MedusaContainer, orderId: string): Promise<string | null> {
+  const token = await issueOrderToken(container, orderId)
+  if (!token) return null
   const storefront = (process.env.STOREFRONT_URL ?? "http://localhost:3000").replace(/\/+$/, "")
   return `${storefront}/pedido/${orderId}/acceso?token=${token}`
 }

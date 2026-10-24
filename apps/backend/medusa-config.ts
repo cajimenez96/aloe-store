@@ -1,10 +1,12 @@
 import { loadEnv, defineConfig } from "@medusajs/framework/utils"
+import { readMpConfig } from "./src/lib/mercadopago/config"
 import { assertStrongSecrets } from "./src/lib/config/secrets"
 import { sessionCookieOptions } from "./src/lib/config/session"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 assertStrongSecrets(process.env)
 
+const mp = readMpConfig(process.env)
 const redisUrl = process.env.REDIS_URL
 const backendUrl = process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000"
 
@@ -54,6 +56,29 @@ module.exports = defineConfig({
         ],
       },
     },
+    // Pago con tarjeta (Mercado Pago). Solo se registra con MP_ACCESS_TOKEN; sin él la tienda
+    // acepta únicamente transferencia (el proveedor manual de Medusa sigue disponible).
+    ...(mp.enabled
+      ? [
+          {
+            resolve: "@medusajs/medusa/payment",
+            options: {
+              providers: [
+                {
+                  resolve: "./src/modules/mercadopago-payment",
+                  id: "mercadopago",
+                  options: {
+                    accessToken: mp.accessToken,
+                    apiBase: mp.apiBase,
+                    notificationUrl: mp.notificationUrl,
+                    backUrlBase: mp.backUrlBase,
+                  },
+                },
+              ],
+            },
+          },
+        ]
+      : []),
     ...(redisUrl
       ? [
           {

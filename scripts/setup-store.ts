@@ -14,6 +14,7 @@ import {
   createLocationFulfillmentSetWorkflow,
   createPricePreferencesWorkflow,
   createRegionsWorkflow,
+  updateRegionsWorkflow,
   createSalesChannelsWorkflow,
   createShippingOptionsWorkflow,
   createStockLocationsWorkflow,
@@ -34,6 +35,7 @@ const REGION_NAME = "Argentina"
 const LOCATION_NAME = "Local"
 const FULFILLMENT_SET_NAME = "Entregas desde el local"
 const API_KEY_TITLE = "Tienda web"
+const MP_PROVIDER = "pp_mercadopago_mercadopago"
 const PICKUP_NAME = "Retiro en el local"
 const DELIVERY_NAME = "Envío a domicilio"
 
@@ -136,7 +138,7 @@ export default async function setupStore({ container }: ExecArgs) {
             name: REGION_NAME,
             currency_code: CURRENCY,
             countries: [COUNTRY],
-            payment_providers: ["pp_system_default"],
+            payment_providers: ["pp_system_default", ...(process.env.MP_ACCESS_TOKEN ? [MP_PROVIDER] : [])],
           },
         ],
       },
@@ -144,6 +146,23 @@ export default async function setupStore({ container }: ExecArgs) {
     regionId = region.id
   }
   report(!regions[0], `región "${REGION_NAME}"`)
+
+  // 3b. Mercado Pago (tarjeta) en la región, si está configurado. Si la región ya existía
+  // sin el proveedor, se agrega sin tocar los demás.
+  if (process.env.MP_ACCESS_TOKEN && regionId) {
+    const { data: current } = await query.graph({
+      entity: "region",
+      fields: ["id", "payment_providers.id"],
+      filters: { id: regionId },
+    })
+    const ids = (current[0]?.payment_providers ?? []).map((provider: { id: string }) => provider.id)
+    if (!ids.includes(MP_PROVIDER)) {
+      await updateRegionsWorkflow(container).run({
+        input: { selector: { id: regionId }, update: { payment_providers: [...ids, MP_PROVIDER] } },
+      })
+    }
+    report(!ids.includes(MP_PROVIDER), "proveedor de pago Mercado Pago en la región")
+  }
 
   // 4. Región fiscal sin alícuota: el comercio no usa ARCA ni cobra impuestos.
   const { data: taxRegions } = await query.graph({

@@ -50,7 +50,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return fail(res, 422, "PAYMENT_METHOD_REQUIRED", "Elegí cómo querés pagar para confirmar el pedido.")
   }
   if (method === "card") {
-    return fail(res, 503, "PAYMENT_PROVIDER_UNAVAILABLE", "El pago con tarjeta todavía no está disponible. Pagá por transferencia.")
+    // El pedido con tarjeta se crea solo cuando llega el pago aprobado (HU-24); no se confirma a mano.
+    return fail(res, 422, "CARD_PAYMENT_REQUIRED", "Pagá con tarjeta desde Mercado Pago para confirmar el pedido.")
   }
   if (!cart.email || (cart.shipping_methods ?? []).length === 0 || !cart.shipping_address?.first_name) {
     return fail(res, 422, "CHECKOUT_INCOMPLETE", "Completá tus datos y la forma de entrega para confirmar.")

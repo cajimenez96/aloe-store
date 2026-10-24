@@ -19,7 +19,9 @@
     "setup:store": "npm run setup:store --workspace @aloe/backend",
     "user:role": "npm run user:role --workspace @aloe/backend --",
     "email:preview": "npm run email:preview --workspace @aloe/backend",
-    "e2e": "node scripts/e2e/run.mjs"
+    "e2e": "node scripts/e2e/run.mjs",
+    "mp:simulator": "node scripts/mp/simulator.mjs",
+    "mp:webhook": "node scripts/mp/simulate-webhook.mjs"
   },
   "overrides": {
     "tsconfig-paths": "^4.2.0",

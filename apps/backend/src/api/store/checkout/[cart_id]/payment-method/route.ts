@@ -9,6 +9,7 @@ import {
 } from "@medusajs/medusa/core-flows"
 import { z } from "zod"
 import { MANUAL_PROVIDER_ID, planPaymentMethod } from "../../../../../lib/transfer-discount/guard"
+import { MP_PROVIDER_ID, readMpConfig } from "../../../../../lib/mercadopago/config"
 import { getTransferCode } from "../../../../../lib/transfer-discount/secret"
 
 const bodySchema = z.object({ method: z.enum(["card", "transfer"]) }).strict()
@@ -46,6 +47,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         "payment_collection.payment_sessions.id",
         "payment_collection.payment_sessions.provider_id",
         "payment_collection.payment_sessions.status",
+        "payment_collection.payment_sessions.data",
       ],
       filters: { id: cartId },
     })
@@ -63,6 +65,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       "La transferencia no está disponible por ahora.",
       "PAYMENT_PROVIDER_UNAVAILABLE"
     )
+  }
+
+  if (method === "card" && !readMpConfig(process.env).enabled) {
+    throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "El pago con tarjeta no está disponible por ahora.", "PAYMENT_PROVIDER_UNAVAILABLE")
   }
 
   const promoApplied = Boolean(
@@ -93,8 +99,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     })
   }
 
-  // La tarjeta todavía no crea una sesión de pago (HU-24): se recuerda la elección
-  // en el carrito, sin pisar el resto de la metadata (por ejemplo el documento).
+  // Se recuerda la elección en el carrito, sin pisar el resto de la metadata (por ejemplo el documento).
   await updateCartWorkflow(req.scope).run({
     input: { id: cartId, metadata: { ...(cart.metadata ?? {}), payment_method: method } },
   })
@@ -118,10 +123,43 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
   }
 
+  if (method === "card") {
+    cart = await load()
+    // Con tarjeta no queda ninguna sesión manual: el pago lo resuelve Mercado Pago (HU-24).
+    const manual = (cart.payment_collection?.payment_sessions ?? []).flatMap((s) =>
+      s && s.provider_id === MANUAL_PROVIDER_ID ? [s.id] : []
+    )
+    if (manual.length > 0) await deletePaymentSessionsWorkflow(req.scope).run({ input: { ids: manual } })
+
+    let collectionId = cart.payment_collection?.id
+    if (!collectionId) {
+      const { result } = await createPaymentCollectionForCartWorkflow(req.scope).run({ input: { cart_id: cartId } })
+      collectionId = result.id
+    }
+    const hasMp = (cart.payment_collection?.payment_sessions ?? []).some((s) => s?.provider_id === MP_PROVIDER_ID)
+    if (!hasMp) {
+      try {
+        await createPaymentSessionsWorkflow(req.scope).run({
+          input: { payment_collection_id: collectionId, provider_id: MP_PROVIDER_ID },
+        })
+      } catch (error) {
+        if ((error as { code?: string }).code === "PAYMENT_PROVIDER_UNAVAILABLE") {
+          throw new MedusaError(
+            MedusaError.Types.UNEXPECTED_STATE,
+            "No pudimos conectar con Mercado Pago. Probá de nuevo o pagá por transferencia.",
+            "PAYMENT_PROVIDER_UNAVAILABLE"
+          )
+        }
+        throw error
+      }
+    }
+  }
+
   cart = await load()
-  const session = (cart.payment_collection?.payment_sessions ?? []).find(
-    (s) => s?.provider_id === MANUAL_PROVIDER_ID
-  )
+  const sessions = cart.payment_collection?.payment_sessions ?? []
+  const session = sessions.find((s) => s?.provider_id === (method === "card" ? MP_PROVIDER_ID : MANUAL_PROVIDER_ID))
+  const redirectUrl =
+    method === "card" ? ((session?.data as { init_point?: string } | undefined)?.init_point ?? null) : null
 
   res.json({
     cart: {
@@ -130,6 +168,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       discount_total: MathBN.convert(cart.discount_total).toNumber(),
       total: MathBN.convert(cart.total).toNumber(),
     },
-    payment_session: method === "transfer" && session ? { provider_id: session.provider_id, status: session.status } : null,
+    payment_session: session ? { provider_id: session.provider_id, status: session.status, redirect_url: redirectUrl } : null,
   })
 }

@@ -131,6 +131,17 @@ export const TEMPLATES = {
       ],
     }),
   },
+  "payment-refunded": {
+    sample: { name: "Ana", amount: "$ 1.800" },
+    render: (data) => ({
+      subject: "Te devolvimos el pago",
+      lines: [
+        `Hola ${data.name}`,
+        `Recibimos tu pago de ${data.amount}, pero la última unidad de tu pedido se agotó justo antes de confirmarlo. No pudimos armar el pedido, así que te devolvimos el dinero.`,
+        "El reembolso puede demorar unos días en verse en tu tarjeta. Perdón por el inconveniente: si todavía querés los productos, podés volver a intentarlo en la tienda.",
+      ],
+    }),
+  },
 } satisfies Record<string, TemplateDefinition>
 
 export type TemplateName = keyof typeof TEMPLATES
