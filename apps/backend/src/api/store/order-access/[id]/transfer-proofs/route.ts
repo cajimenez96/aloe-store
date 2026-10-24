@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { createHash } from "node:crypto"
 import { fail, orderAccessDenied } from "../../../../../lib/order-access/http"
+import { notifyAdminProofReceived } from "../../../../../lib/notifications/order-emails"
 import { authorizeOrder } from "../../../../../lib/order-access/authorize"
 import { TRANSFER_PROOF_MODULE } from "../../../../../modules/transfer-proof"
 import type TransferProofModuleService from "../../../../../modules/transfer-proof/service"
@@ -82,6 +83,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     mime: checked.mime,
     size: file.buffer.length,
   })
+
+  await notifyAdminProofReceived(req.scope, order.displayId)
 
   res.status(201).json({
     transfer_proof: { id: proof.id, status: proof.status, created_at: proof.created_at },

@@ -94,3 +94,44 @@ describe("plantilla transfer-order (HU-27)", () => {
     expect(html).not.toContain("<script>x</script>")
   })
 })
+
+describe("todas las plantillas", () => {
+  const names = Object.keys(TEMPLATES) as (keyof typeof TEMPLATES)[]
+
+  it("hay plantillas para los avisos del flujo de transferencia", () => {
+    for (const name of ["order-paid", "proof-received-admin", "proof-rejected", "order-canceled"]) {
+      expect(names).toContain(name)
+    }
+  })
+
+  it.each(names)("%s se renderiza completa con sus datos de ejemplo", (name) => {
+    const email = renderEmail(name, TEMPLATES[name].sample, shop)
+    expect(email.subject.length).toBeGreaterThan(5)
+    expect(email.html).toMatch(/^<!doctype html>/i)
+    expect(email.text.length).toBeGreaterThan(20)
+    // `cause` solo elige el texto de la cancelación; no se muestra tal cual.
+    for (const [key, value] of Object.entries(TEMPLATES[name].sample)) {
+      if (key !== "cause") expect(email.text).toContain(value)
+    }
+  })
+
+  it.each(names)("%s escapa HTML en los datos del cliente", (name) => {
+    const hostile = Object.fromEntries(Object.keys(TEMPLATES[name].sample).map((key) => [key, "<b>x</b>"]))
+    expect(renderEmail(name, hostile, shop).html).not.toContain("<b>x</b>")
+  })
+})
+
+describe("plantillas con datos sensibles", () => {
+  it("el aviso al admin no lleva datos bancarios ni el comprobante", () => {
+    const { text } = renderEmail("proof-received-admin", TEMPLATES["proof-received-admin"].sample, shop)
+    expect(text).not.toMatch(/cbu|alias|titular|adjunto/i)
+  })
+
+  it("la cancelación distingue vencimiento de cancelación del comercio", () => {
+    const expired = renderEmail("order-canceled", { ...TEMPLATES["order-canceled"].sample, cause: "expired" }, shop)
+    const store = renderEmail("order-canceled", { ...TEMPLATES["order-canceled"].sample, cause: "store" }, shop)
+    expect(expired.text).toMatch(/venci/i)
+    expect(store.text).toMatch(/comercio/i)
+    expect(expired.text).not.toEqual(store.text)
+  })
+})

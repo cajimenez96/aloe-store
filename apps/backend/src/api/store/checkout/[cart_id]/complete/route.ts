@@ -5,6 +5,7 @@ import { sendEmail } from "../../../../../lib/notifications/send-email"
 import { fail } from "../../../../../lib/order-access/http"
 import { clientIp, trustedHopsFromEnv } from "../../../../../lib/order-access/ip"
 import { hashIp, normalizeEmail, pendingLimitReached } from "../../../../../lib/order-access/limits"
+import { addTokenHash } from "../../../../../lib/order-access/hashes"
 import { generateToken, hashToken } from "../../../../../lib/order-access/token"
 import { mergeSettings } from "../../../../../lib/store-settings/validation"
 
@@ -133,8 +134,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       const reference = `PED-${order.display_id}`
       await req.scope.resolve(Modules.ORDER).updateOrders(orderId, {
         metadata: {
-          ...(order.metadata ?? {}),
-          access_token_hash: hashToken(token),
+          ...addTokenHash((order.metadata ?? {}) as Record<string, unknown>, hashToken(token)),
           payment_method: "transfer",
           transfer_reference: reference,
           transfer_due_at: dueAt.toISOString(),

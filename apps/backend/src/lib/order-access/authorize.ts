@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isTokenExpired, verifyToken } from "./token"
+import { tokenMatches } from "./hashes"
+import { isTokenExpired } from "./token"
 
 export type AuthorizedOrder = {
   id: string
@@ -31,7 +32,7 @@ export async function authorizeOrder(
   })
 
   const metadata = (order?.metadata ?? {}) as Record<string, unknown>
-  const valid = verifyToken(token, metadata.access_token_hash as string | undefined)
+  const valid = tokenMatches(token, metadata)
   if (!order || !valid) return null
   if (isTokenExpired({ status: order.status, updatedAt: new Date(order.updated_at as string) })) return null
 

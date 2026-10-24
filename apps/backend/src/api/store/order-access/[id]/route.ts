@@ -1,7 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, MathBN } from "@medusajs/framework/utils"
 import { orderAccessDenied } from "../../../../lib/order-access/http"
-import { isTokenExpired, verifyToken } from "../../../../lib/order-access/token"
+import { tokenMatches } from "../../../../lib/order-access/hashes"
+import { isTokenExpired } from "../../../../lib/order-access/token"
+import { TRANSFER_PROOF_MODULE } from "../../../../modules/transfer-proof"
+import type TransferProofModuleService from "../../../../modules/transfer-proof/service"
 import { mergeSettings, type BankAccount } from "../../../../lib/store-settings/validation"
 
 const num = (value: unknown) => MathBN.convert((value ?? 0) as never).toNumber()
@@ -44,13 +47,18 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   })
 
   const metadata = (order?.metadata ?? {}) as Record<string, unknown>
-  const valid = verifyToken(token, metadata.access_token_hash as string | undefined)
+  const valid = tokenMatches(token, metadata)
   if (!order || !valid || isTokenExpired({ status: order.status, updatedAt: new Date(order.updated_at as string) })) {
     return orderAccessDenied(res)
   }
 
   const isTransfer = metadata.payment_method === "transfer"
-  const pending = order.status === "pending"
+  // Medusa deja el pedido en `pending` aunque el pago ya esté capturado: lo que lo dice es el comprobante aceptado.
+  const accepted = await req.scope
+    .resolve<TransferProofModuleService>(TRANSFER_PROOF_MODULE)
+    .listTransferProofs({ order_id: order.id, status: "accepted" } as never)
+  const paid = accepted.length > 0
+  const pending = order.status === "pending" && !paid
   let bank: BankAccount | null = null
   if (isTransfer && pending) {
     const {
@@ -84,6 +92,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       reference: metadata.transfer_reference ?? null,
       due_at: pending ? (metadata.transfer_due_at ?? null) : null,
       bank_account: bank,
+      status: paid ? "paid" : "pending",
     },
   })
 }

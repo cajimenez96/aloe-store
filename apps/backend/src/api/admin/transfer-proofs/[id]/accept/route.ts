@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { capturePaymentWorkflow } from "@medusajs/medusa/core-flows"
 import { TRANSFER_PROOF_MODULE } from "../../../../../modules/transfer-proof"
 import type TransferProofModuleService from "../../../../../modules/transfer-proof/service"
+import { notifyOrderPaid } from "../../../../../lib/notifications/order-emails"
 import { canReview } from "../../../../../lib/transfer-proofs/review"
 
 /**
@@ -51,5 +52,6 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     reviewed_at: new Date(),
   })
 
+  await notifyOrderPaid(req.scope, proof.order_id)
   res.json({ transfer_proof: { id: proof.id, status: "accepted" } })
 }

@@ -1,6 +1,7 @@
 import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { TRANSFER_PROOF_MODULE } from "../../../../../modules/transfer-proof"
 import type TransferProofModuleService from "../../../../../modules/transfer-proof/service"
+import { notifyProofRejected } from "../../../../../lib/notifications/order-emails"
 import { canReview, validateRejectionReason } from "../../../../../lib/transfer-proofs/review"
 
 /**
@@ -36,5 +37,6 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     reviewed_at: new Date(),
   })
 
+  await notifyProofRejected(req.scope, proof.order_id, reason.reason)
   res.json({ transfer_proof: { id: proof.id, status: "rejected" } })
 }

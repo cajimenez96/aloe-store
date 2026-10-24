@@ -63,6 +63,74 @@ export const TEMPLATES = {
       ],
     }),
   },
+  "order-paid": {
+    sample: {
+      name: "Ana",
+      orderNumber: "1042",
+      items: "2 × Pijama (M)",
+      total: "$ 27.000",
+      paymentMethod: "Transferencia",
+      link: "http://localhost:3000/pedido/order_01/acceso?token=ejemplo",
+    },
+    render: (data) => ({
+      subject: `Pedido #${data.orderNumber}: pago confirmado`,
+      lines: [
+        `Hola ${data.name}`,
+        `Confirmamos el pago de tu pedido #${data.orderNumber}. ¡Gracias por tu compra!`,
+        `Productos: ${data.items}`,
+        `Total: ${data.total}`,
+        `Medio de pago: ${data.paymentMethod}`,
+        `Podés ver tu pedido acá: ${data.link}`,
+      ],
+    }),
+  },
+  "proof-received-admin": {
+    sample: {
+      orderNumber: "1042",
+      link: "http://localhost:9000/app/comprobantes",
+    },
+    render: (data) => ({
+      subject: `Comprobante para revisar: pedido #${data.orderNumber}`,
+      lines: [
+        `Llegó un comprobante de transferencia del pedido #${data.orderNumber}.`,
+        `Revisalo en la cola del panel: ${data.link}`,
+      ],
+    }),
+  },
+  "proof-rejected": {
+    sample: {
+      name: "Ana",
+      orderNumber: "1042",
+      reason: "El monto no coincide con el total del pedido.",
+      link: "http://localhost:3000/pedido/order_01/acceso?token=ejemplo",
+    },
+    render: (data) => ({
+      subject: `Pedido #${data.orderNumber}: no pudimos aceptar tu comprobante`,
+      lines: [
+        `Hola ${data.name}`,
+        `No pudimos aceptar el comprobante de tu pedido #${data.orderNumber}.`,
+        `Motivo: ${data.reason}`,
+        `Podés subir otro comprobante acá: ${data.link}`,
+      ],
+    }),
+  },
+  "order-canceled": {
+    sample: {
+      name: "Ana",
+      orderNumber: "1042",
+      cause: "expired",
+    },
+    render: (data) => ({
+      subject: `Pedido #${data.orderNumber} cancelado`,
+      lines: [
+        `Hola ${data.name}`,
+        data.cause === "expired"
+          ? `Cancelamos tu pedido #${data.orderNumber} porque venció el plazo para transferir sin que recibiéramos el pago. El stock se liberó.`
+          : `El comercio canceló tu pedido #${data.orderNumber}. Si ya pagaste, nos vamos a comunicar con vos para el reembolso.`,
+        "Si todavía querés los productos, podés hacer un pedido nuevo en la tienda.",
+      ],
+    }),
+  },
 } satisfies Record<string, TemplateDefinition>
 
 export type TemplateName = keyof typeof TEMPLATES
