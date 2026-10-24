@@ -1,7 +1,9 @@
 import { loadEnv, defineConfig } from "@medusajs/framework/utils"
+import { assertStrongSecrets } from "./src/lib/config/secrets"
 import { sessionCookieOptions } from "./src/lib/config/session"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
+assertStrongSecrets(process.env)
 
 const redisUrl = process.env.REDIS_URL
 const backendUrl = process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000"

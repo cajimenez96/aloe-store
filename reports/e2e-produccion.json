@@ -1,7 +1,7 @@
 {
   "scenario": "e2e-produccion",
-  "generatedAt": "2026-10-24T19:36:08.942Z",
-  "gitCommit": "5bd1555",
+  "generatedAt": "2026-10-24T19:55:52.304Z",
+  "gitCommit": "55bcc13",
   "workingTreeClean": false,
   "environment": {
     "backend": "medusa start (build de producción)",
@@ -9,14 +9,14 @@
     "node": "v22.23.4"
   },
   "playwright": {
-    "expected": 7,
+    "expected": 12,
     "unexpected": 0,
     "skipped": 1,
     "flaky": 0
   },
   "logs": {
-    "lines": 289,
-    "jsonLines": 284,
+    "lines": 390,
+    "jsonLines": 385,
     "allApplicationLogsJson": true,
     "runtimeWarnings": 5,
     "unexpectedNonJson": [],

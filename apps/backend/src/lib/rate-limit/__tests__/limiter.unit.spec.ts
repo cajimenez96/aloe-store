@@ -46,6 +46,12 @@ describe("RateLimiter (SEC-17)", () => {
     expect(limiter.hit("x", "ip", rule).allowed).toBe(true)
   })
 
+  it("no crece sin límite: con muchas claves distintas descarta las más viejas", () => {
+    const limiter = new RateLimiter(clock, 50)
+    for (let i = 0; i < 200; i++) limiter.hit("x", `ip-${i}`, { limit: 5, windowSeconds: 60 })
+    expect(limiter.size()).toBeLessThanOrEqual(50)
+  })
+
   it("limpia las entradas vencidas para no crecer sin límite", () => {
     const limiter = new RateLimiter(clock)
     for (let i = 0; i < 100; i++) limiter.hit("x", `ip-${i}`, { limit: 5, windowSeconds: 60 })

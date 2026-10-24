@@ -52,7 +52,10 @@ type Result = { allowed: boolean; retryAfterSeconds: number }
 export class RateLimiter {
   private hits = new Map<string, { times: number[]; windowMs: number }>()
 
-  constructor(private readonly now: () => number = Date.now) {}
+  constructor(
+    private readonly now: () => number = Date.now,
+    private readonly maxKeys = 50_000
+  ) {}
 
   hit(bucket: string, who: string, rule: Rule): Result {
     const key = `${bucket}:${who}`
@@ -68,6 +71,7 @@ export class RateLimiter {
 
     recent.push(current)
     this.hits.set(key, { times: recent, windowMs })
+    this.enforceCap()
     return { allowed: true, retryAfterSeconds: 0 }
   }
 
@@ -77,6 +81,16 @@ export class RateLimiter {
     for (const [key, entry] of this.hits) {
       const last = entry.times[entry.times.length - 1] ?? 0
       if (current - last >= entry.windowMs) this.hits.delete(key)
+    }
+  }
+
+  /** Con muchas claves distintas (por ejemplo IPs inventadas) descarta las más viejas para no crecer sin límite. */
+  private enforceCap(): void {
+    if (this.hits.size <= this.maxKeys) return
+    this.sweep()
+    for (const key of this.hits.keys()) {
+      if (this.hits.size <= this.maxKeys) break
+      this.hits.delete(key)
     }
   }
 

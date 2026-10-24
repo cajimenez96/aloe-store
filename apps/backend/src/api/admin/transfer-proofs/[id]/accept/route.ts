@@ -28,9 +28,16 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     data: [order],
   } = await query.graph({
     entity: "order",
-    fields: ["id", "payment_collections.payments.id", "payment_collections.payments.captured_at"],
+    fields: ["id", "status", "payment_collections.payments.id", "payment_collections.payments.captured_at"],
     filters: { id: proof.order_id },
   })
+  if (order?.status === "canceled") {
+    return res.status(409).json({
+      type: "not_allowed",
+      code: "ORDER_EXPIRED",
+      message: "El pedido está cancelado: no se puede aceptar el comprobante.",
+    })
+  }
   const payment = (order?.payment_collections ?? []).flatMap((c) => c?.payments ?? []).find((p) => p && !p.captured_at)
   if (!payment) {
     return res.status(409).json({

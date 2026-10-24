@@ -28,6 +28,12 @@ describe("clientIp (SEC-40)", () => {
     expect(clientIp({ remoteAddress: "10.0.0.1", forwardedFor: "1.1.1.1", trustedHops: 3 })).toBe("10.0.0.1")
   })
 
+  it("una entrada que no parece una IP no se usa como clave (cae a la conexión)", () => {
+    for (const forged of ['evil"\n', "<script>", "a".repeat(200), "1.2.3.4; drop", ""]) {
+      expect(clientIp({ remoteAddress: "10.0.0.5", forwardedFor: forged, trustedHops: 1 })).toBe("10.0.0.5")
+    }
+  })
+
   it("sin nada devuelve undefined", () => {
     expect(clientIp({ remoteAddress: undefined, forwardedFor: undefined, trustedHops: 0 })).toBeUndefined()
   })

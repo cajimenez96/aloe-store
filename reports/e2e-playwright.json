@@ -116,12 +116,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5094,
+                  "duration": 4553,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:35:46.610Z",
+                  "startTime": "2026-10-24T19:55:26.301Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -163,7 +163,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:35:51.923Z",
+                  "startTime": "2026-10-24T19:55:31.099Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -200,12 +200,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5165,
+                  "duration": 4957,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:35:57.276Z",
+                  "startTime": "2026-10-24T19:55:36.451Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -242,12 +242,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2329,
+                  "duration": 2347,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:36:02.450Z",
+                  "startTime": "2026-10-24T19:55:41.417Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -284,12 +284,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 739,
+                  "duration": 483,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:36:04.785Z",
+                  "startTime": "2026-10-24T19:55:43.771Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -332,7 +332,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:36:05.529Z",
+                  "startTime": "2026-10-24T19:55:44.259Z",
                   "annotations": [
                     {
                       "type": "fixme",
@@ -378,12 +378,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2171,
+                  "duration": 2544,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:36:05.532Z",
+                  "startTime": "2026-10-24T19:55:44.261Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -420,12 +420,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1185,
+                  "duration": 1033,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:36:07.711Z",
+                  "startTime": "2026-10-24T19:55:46.813Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -439,13 +439,207 @@
           "column": 5
         }
       ]
+    },
+    {
+      "title": "08-checklist-seguridad.spec.ts",
+      "file": "08-checklist-seguridad.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "CORS con orígenes exactos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 26,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T19:55:47.855Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d7b0e98d2dfebabb209a-82f0fee5e531db173f23",
+          "file": "08-checklist-seguridad.spec.ts",
+          "line": 8,
+          "column": 5
+        },
+        {
+          "title": "el storefront manda los encabezados de seguridad (sin HSTS) en todas las respuestas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 62,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T19:55:47.885Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d7b0e98d2dfebabb209a-68f842102d5873d64a57",
+          "file": "08-checklist-seguridad.spec.ts",
+          "line": 22,
+          "column": 5
+        },
+        {
+          "title": "comprobantes: fuera de static, sin sesión no se abren y el enlace alterado o ajeno se rechaza",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1330,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T19:55:47.951Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d7b0e98d2dfebabb209a-e6c04eadd6dd17fa8225",
+          "file": "08-checklist-seguridad.spec.ts",
+          "line": 38,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "09-pedidos-filtro-de-pago.spec.ts",
+      "file": "09-pedidos-filtro-de-pago.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "pedidos: se filtran por estado de pago y por canal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1833,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T19:55:49.286Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c75b9a1455c366e178d9-100f14ebf3fe8f4e7cd3",
+          "file": "09-pedidos-filtro-de-pago.spec.ts",
+          "line": 5,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "10-subidas-en-paralelo.spec.ts",
+      "file": "10-subidas-en-paralelo.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seis subidas simultáneas del mismo pedido dejan un solo comprobante en revisión",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1134,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T19:55:51.126Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f4f5cb31c2a45e955727-9f3074e828fb1e9065d2",
+          "file": "10-subidas-en-paralelo.spec.ts",
+          "line": 7,
+          "column": 5
+        }
+      ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-24T19:35:46.107Z",
-    "duration": 22820.648999999998,
-    "expected": 7,
+    "startTime": "2026-10-24T19:55:25.780Z",
+    "duration": 26508.233,
+    "expected": 12,
     "skipped": 1,
     "unexpected": 0,
     "flaky": 0

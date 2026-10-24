@@ -90,8 +90,8 @@ async function main() {
     STORE_CORS: STOREFRONT_URL,
     ADMIN_CORS: BACKEND_URL,
     AUTH_CORS: BACKEND_URL,
-    JWT_SECRET: "e2e-jwt-secret-0123456789abcdef",
-    COOKIE_SECRET: "e2e-cookie-secret-0123456789abcdef",
+    JWT_SECRET: "e2e-jwt-secret-0123456789abcdef-aloe-prueba",
+    COOKIE_SECRET: "e2e-cookie-secret-0123456789abcdef-aloe-prueba",
     PROOFS_DIR: proofsDir,
     // Límites holgados: los escenarios simulan muchos clientes desde una sola máquina.
     RATE_LIMITS: JSON.stringify({ login: { limit: 1000, windowSeconds: 60 }, checkout: { limit: 1000, windowSeconds: 60 }, store: { limit: 10000, windowSeconds: 60 } }),

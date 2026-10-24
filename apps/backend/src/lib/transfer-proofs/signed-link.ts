@@ -17,12 +17,9 @@ export function verifyProofLink(proofId: string, token: string, secret: string, 
   const expires = Number(parts[0])
   if (!Number.isInteger(expires) || expires < now.getTime()) return false
 
+  // La firma es SHA-256 en hexadecimal: 64 caracteres exactos, nada más.
+  if (!/^[a-f0-9]{64}$/.test(parts[1])) return false
   const expected = Buffer.from(mac(proofId, expires, secret), "hex")
-  let received: Buffer
-  try {
-    received = Buffer.from(parts[1], "hex")
-  } catch {
-    return false
-  }
+  const received = Buffer.from(parts[1], "hex")
   return received.length === expected.length && timingSafeEqual(received, expected)
 }

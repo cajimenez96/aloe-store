@@ -24,6 +24,13 @@ describe("enlace firmado del comprobante (SEC-51)", () => {
     expect(verifyProofLink("tp_1", `${exp}.${sig.slice(0, -2)}aa`, secret, now)).toBe(false)
   })
 
+  it("rechaza una firma de largo distinto o con caracteres que no son hexadecimales", () => {
+    const token = signProofLink("tp_1", secret, now)
+    expect(verifyProofLink("tp_1", token + "x", secret, now)).toBe(false)
+    expect(verifyProofLink("tp_1", token + "0", secret, now)).toBe(false)
+    expect(verifyProofLink("tp_1", token.slice(0, -1), secret, now)).toBe(false)
+  })
+
   it("un valor mal formado se rechaza sin romper", () => {
     for (const bad of ["", "abc", "1.2.3", ".", "x.y", "9999999999999."]) {
       expect(verifyProofLink("tp_1", bad, secret, now)).toBe(false)

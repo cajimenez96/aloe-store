@@ -34,6 +34,11 @@ describe("describeNotification (SEC-70)", () => {
     expect(fields.text).toContain("acceso?token=")
   })
 
+  it("en producción nunca agrega el texto, aunque se pida", () => {
+    expect(describeNotification(notification, true, "production").text).toBeUndefined()
+    expect(describeNotification(notification, true, "development").text).toContain("acceso?token=")
+  })
+
   it("tolera una notificación incompleta", () => {
     expect(describeNotification({ to: "x", channel: "email", template: "t" } as never, false)).toMatchObject({
       template: "t",

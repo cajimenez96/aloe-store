@@ -13,7 +13,11 @@ type Notification = {
  * deja la plantilla, el canal, el destinatario enmascarado y el asunto. El texto se
  * agrega únicamente con `LOG_EMAIL_BODIES=true`, para probar el enlace en desarrollo.
  */
-export function describeNotification(notification: Notification, includeBody: boolean) {
+export function describeNotification(
+  notification: Notification,
+  includeBody: boolean,
+  nodeEnv: string | undefined = process.env.NODE_ENV
+) {
   const data = notification.data ?? {}
   const fields: Record<string, string> = {
     template: String(notification.template ?? ""),
@@ -21,6 +25,7 @@ export function describeNotification(notification: Notification, includeBody: bo
     to_masked: maskEmail(notification.to),
     subject: typeof data.subject === "string" ? data.subject : "",
   }
-  if (includeBody && typeof data.text === "string") fields.text = data.text
+  // En producción el cuerpo no se registra nunca, aunque alguien active la opción por error.
+  if (includeBody && nodeEnv !== "production" && typeof data.text === "string") fields.text = data.text
   return fields
 }

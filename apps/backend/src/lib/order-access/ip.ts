@@ -5,6 +5,8 @@
  * confianza hay delante (`TRUSTED_PROXY_HOPS`): cada uno agrega la IP que vio al
  * final de la lista, así que se toma desde la derecha.
  */
+const IP_PATTERN = /^[0-9a-fA-F:.]{3,45}$/
+
 export function clientIp(input: {
   remoteAddress: string | undefined
   forwardedFor: string | undefined
@@ -16,7 +18,7 @@ export function clientIp(input: {
       .map((entry) => entry.trim())
       .filter(Boolean)
     const picked = entries[entries.length - input.trustedHops]
-    if (picked) return picked
+    if (picked && IP_PATTERN.test(picked)) return picked
   }
   return input.remoteAddress
 }
