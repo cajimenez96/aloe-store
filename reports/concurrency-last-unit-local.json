@@ -1,0 +1,28 @@
+{
+  "scenario": "ultima-unidad",
+  "channels": "local",
+  "generatedAt": "2026-10-24T19:20:35.109Z",
+  "gitCommit": "6d856dd",
+  "workingTreeClean": false,
+  "attempts": 20,
+  "elapsedMs": 2919,
+  "succeeded": 1,
+  "invalidAttempts": [],
+  "succeededBy": [
+    "local"
+  ],
+  "failures": {
+    "local: STOCK_INSUFFICIENT": 19
+  },
+  "inventory": {
+    "stocked": 0,
+    "reserved": 0,
+    "available": 0
+  },
+  "checks": {
+    "allAttemptsCompeted": true,
+    "exactlyOneSucceeded": true,
+    "neverNegative": true
+  },
+  "passed": true
+}

@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys, MathBN, Modules } from "@medusajs/framework/
 import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
 import { sendEmail } from "../../../../../lib/notifications/send-email"
 import { fail } from "../../../../../lib/order-access/http"
+import { isStockConflict } from "../../../../../lib/cart-limits/conflict"
 import { clientIp, trustedHopsFromEnv } from "../../../../../lib/order-access/ip"
 import { hashIp, normalizeEmail, pendingLimitReached } from "../../../../../lib/order-access/limits"
 import { addTokenHash } from "../../../../../lib/order-access/hashes"
@@ -118,8 +119,22 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         }
       }
 
-      const { result } = await completeCartWorkflow(req.scope).run({ input: { id: cartId } })
-      const orderId = (result as { id: string }).id
+      let orderId: string
+      try {
+        const { result } = await completeCartWorkflow(req.scope).run({ input: { id: cartId } })
+        orderId = (result as { id: string }).id
+      } catch (error) {
+        // Otra compra se llevó la última unidad entre agregar al carrito y confirmar.
+        if (isStockConflict(error)) {
+          return {
+            ok: false,
+            status: 409,
+            code: "STOCK_INSUFFICIENT",
+            message: "Alguien se llevó la última unidad antes que vos. Revisá tu carrito.",
+          }
+        }
+        throw error
+      }
 
       const {
         data: [order],

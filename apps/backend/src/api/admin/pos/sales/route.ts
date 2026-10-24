@@ -10,6 +10,7 @@ import {
   createPaymentCollectionForCartWorkflow,
   createPaymentSessionsWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { isStockConflict } from "../../../../lib/cart-limits/conflict"
 import { logEvent } from "../../../../lib/logging/log"
 import { dayBounds, summarizeSales } from "../../../../lib/pos/day"
 import { parseSaleInput } from "../../../../lib/pos/sale"
@@ -76,8 +77,21 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     input: { payment_collection_id: collection.id, provider_id: MANUAL_PROVIDER_ID },
   })
 
-  const { result } = await completeCartWorkflow(req.scope).run({ input: { id: cart.id } })
-  const orderId = (result as { id: string }).id
+  let orderId: string
+  try {
+    const { result } = await completeCartWorkflow(req.scope).run({ input: { id: cart.id } })
+    orderId = (result as { id: string }).id
+  } catch (error) {
+    // Otra venta se llevó la última unidad entre armar la venta y cobrarla.
+    if (isStockConflict(error)) {
+      return res.status(409).json({
+        type: "not_allowed",
+        code: "STOCK_INSUFFICIENT",
+        message: JSON.stringify({ available: 0 }),
+      })
+    }
+    throw error
+  }
 
   const actor = req.auth_context?.actor_id ?? null
   await req.scope.resolve(Modules.ORDER).updateOrders(orderId, {
