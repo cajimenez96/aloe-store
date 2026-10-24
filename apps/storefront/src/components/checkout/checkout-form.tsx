@@ -102,7 +102,11 @@ export function CheckoutForm({ choices, currencyCode, initial }: CheckoutFormPro
               {choice.name}
             </span>
             <span className="text-shade-60">
-              {choice.amount > 0 ? formatPrice(choice.amount, currencyCode) : "Sin costo"}
+              {choice.kind === "delivery"
+                ? "Costo a coordinar"
+                : choice.amount > 0
+                  ? formatPrice(choice.amount, currencyCode)
+                  : "Sin costo"}
             </span>
           </label>
         ))}

@@ -33,6 +33,13 @@ async function Checkout() {
     method === "transfer" && transferPercent > 0
       ? cart.total / (1 - transferPercent / 100)
       : cart.total;
+  const chosen = choices.find((choice) => choice.id === raw.shipping_methods?.[0]?.shipping_option_id)
+  // El costo del envío está por fuera del sistema: se coordina con el cliente.
+  const shippingLabel = !chosen
+    ? "Elegí la entrega"
+    : chosen.kind === "delivery"
+      ? "A coordinar"
+      : "Sin costo"
   const address = raw.shipping_address;
   const selected = raw.shipping_methods?.[0]?.shipping_option_id ?? undefined;
 
@@ -92,9 +99,7 @@ async function Checkout() {
           <div className="flex justify-between">
             <dt>Envío</dt>
             <dd>
-              {cart.shippingTotal > 0
-                ? formatPrice(cart.shippingTotal, cart.currencyCode)
-                : "Sin costo"}
+              {shippingLabel}
             </dd>
           </div>
           <div className="flex justify-between text-base">
