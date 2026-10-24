@@ -132,7 +132,7 @@ Esta configuración la realiza el superadmin una sola vez por instancia. Se auto
 | Canales de venta | "Web" y "Local" | [Medusa] |
 | Clave publicable | Una clave asociada al canal "Web", usada por el storefront | [Medusa] |
 | Ubicación de stock | "Local", asociada a ambos canales | [Medusa] |
-| Opciones de envío | "Retiro en el local" (sin costo) y "Envío a domicilio" (costo fijo) | [Medusa] |
+| Opciones de envío | "Retiro en el local" y "Envío a domicilio", ambas con precio 0: el costo del envío está por fuera del sistema y se coordina con el cliente | [Medusa] |
 | Proveedores de pago en la región | Manual (`pp_system_default`) y Mercado Pago | [Medusa] |
 | Usuarios | Superadmin, admin y vendedores | [Medusa] |
 
@@ -152,7 +152,7 @@ Los datos que el admin necesita editar se guardan en la `metadata` de la entidad
 
 **Datos que no viven aquí, para no duplicarlos:**
 - El **porcentaje de descuento por transferencia** vive solo en la promoción de Medusa.
-- El **costo de envío** vive solo en la opción de envío de Medusa.
+- El **costo de envío** no vive en el sistema: se coordina con el cliente. Las opciones de envío de Medusa tienen precio 0 y la tienda muestra "a coordinar" para el envío a domicilio.
 
 **[Confirmado]** la API de tienda no expone `Store` ni su `metadata` (no existe `/store/stores`). `transfer_promotion_code` puede quedar ahí.
 
@@ -561,6 +561,7 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 | `SETTING_INVALID` | 422 | Valor de configuración inválido. | Corregir el campo indicado. |
 | `STORE_UNAVAILABLE` | 503 | La tienda no pudo consultar al servidor (red caída o error del servidor). Es un aviso de la tienda, no de la API. | Reintentar en unos segundos. |
 | `COLOR_INVALID` | 422 | El color no tiene el formato `#RRGGBB`, o el valor no es de la opción Color. | Corregir el color. |
+| `PRODUCT_MULTIPLE_CATEGORIES` | 400 | Un producto quedaría en más de una categoría. | Dejarlo en una sola categoría o subcategoría. |
 | `ROLE_NOT_ALLOWED` | 403 | El rol no tiene permiso para la acción. | Pedir el permiso al admin. |
 | `WEBHOOK_SIGNATURE_INVALID` | 401 | Firma de Mercado Pago inválida. | No aplica al usuario. Se registra y se descarta. |
 

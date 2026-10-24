@@ -120,7 +120,7 @@ Cuando exista un despliegue se suma: verificada en el entorno desplegado.
   - [ ] Sin impuestos: la región fiscal de Argentina existe sin alícuota y el precio de lista es el precio final.
   - [ ] Canales de venta "Web" y "Local", y clave publicable asociada a "Web".
   - [ ] Ubicación de stock "Local" asociada a ambos canales.
-  - [ ] Opciones de envío "Retiro en el local" y "Envío a domicilio" con costo fijo.
+  - [ ] Opciones de envío "Retiro en el local" y "Envío a domicilio", ambas sin costo en el sistema (el envío se coordina por fuera).
   - [ ] Proveedor manual habilitado en la región.
   - [ ] La configuración se aplica con `scripts/setup-store.ts`, que es idempotente: ejecutarlo dos veces no duplica nada, y permite recrear el entorno local desde cero.
   - [ ] No se carga ningún dato de catálogo.
@@ -163,7 +163,7 @@ Cuando exista un despliegue se suma: verificada en el entorno desplegado.
   - [ ] Puedo desactivar una categoría, y deja de mostrarse en la tienda.
   - [ ] Ninguna categoría viene cargada.
   - [ ] Existe una guía breve para el dueño que explica la convención de tres niveles.
-- **Bloqueante:** si un producto puede estar en más de una subcategoría.
+- **Decidido:** un producto va en una sola categoría o subcategoría. El backend rechaza con `PRODUCT_MULTIPLE_CATEGORIES` crear, editar o asignar un producto a más de una.
 
 #### HU-08 · Productos con talles, colores y variantes
 - **Sprint:** S1 · **Puntos:** 5 · **Prioridad:** Must
@@ -282,7 +282,7 @@ Cuando exista un despliegue se suma: verificada en el entorno desplegado.
 - **Descripción:** Como cliente, quiero elegir retiro en el local o envío, para recibir la compra como prefiero.
 - **Criterios de aceptación:**
   - [ ] Se muestran las opciones de envío nativas configuradas en HU-04.
-  - [ ] El envío suma su costo fijo al total.
+  - [ ] El envío a domicilio no suma costo al total y se muestra como "a coordinar con el comercio".
   - [ ] Para envío, la dirección es obligatoria. Para retiro, no se pide.
 
 #### HU-21 · Elegir medio de pago
@@ -720,7 +720,7 @@ Afectan a historias concretas del MVP0. Mientras no se respondan, esas historias
 | # | Pregunta | Afecta a | Necesaria antes de |
 |---|---|---|---|
 | 1 | ~~Condición fiscal del cliente~~ Resuelta: no usa ARCA ni cobra impuestos | HU-04 | S1 |
-| 2 | ¿Un producto puede estar en más de una subcategoría? | HU-07 | S1 |
+| 2 | ~~¿Un producto puede estar en más de una subcategoría?~~ Resuelta: no | HU-07 | S1 |
 | 3 | ¿El efectivo o la transferencia en el local tienen descuento? | HU-34 | S6 |
 
 **Decisión técnica pendiente (no es una pregunta para el dueño):** herramienta y condiciones del túnel temporal para probar Mercado Pago con URL pública. Se resuelve en SP-02, en S0.

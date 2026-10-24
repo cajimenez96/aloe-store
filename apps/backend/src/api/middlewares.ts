@@ -4,6 +4,7 @@ import {
   defineMiddlewares,
 } from '@medusajs/framework/http'
 import { enforceRole } from '../lib/roles/guard'
+import { enforceSingleCategoryOnAdd } from '../lib/single-category/middleware'
 import { scrubTransferCode } from '../lib/transfer-discount/scrub-middleware'
 import { validateImageUploads } from '../lib/uploads/validate-image-uploads'
 
@@ -27,6 +28,12 @@ export default defineMiddlewares({
       // tienda (SEC-31, HU-22).
       matcher: '/store*',
       middlewares: [scrubTransferCode],
+    },
+    {
+      // Un producto va en una sola categoría (HU-07).
+      method: ['POST'],
+      matcher: '/admin/product-categories/:id/products',
+      middlewares: [enforceSingleCategoryOnAdd],
     },
     {
       // Medusa no valida el tipo ni el tamaño de lo que se sube (SEC-50).

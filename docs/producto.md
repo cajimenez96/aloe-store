@@ -76,7 +76,7 @@ Cualquier otra pieza propia necesita justificarse antes de entrar al plan.
 - Listado con búsqueda y filtro por categoría.
 - Detalle de producto con selección de talle y color.
 - Carrito y compra como invitado.
-- Retiro en el local o envío con costo fijo.
+- Retiro en el local o envío a domicilio, con el costo coordinado por fuera del sistema.
 - Pago con tarjeta mediante Mercado Pago Checkout Pro.
 - Pago por transferencia con comprobante.
 
@@ -202,7 +202,7 @@ La correspondencia con los estados de Medusa está en `arquitectura.md`, secció
 ### 8.5 Envíos
 
 - Retiro en el local, sin costo.
-- Envío con costo fijo, que el dueño coordina con el cliente.
+- Envío a domicilio. **Decidido:** el costo del envío está por fuera del sistema. La tienda no lo cobra ni lo suma al total: el dueño lo coordina con el cliente y la tienda lo avisa como "a coordinar".
 
 ### 8.6 Punto de venta
 
@@ -253,8 +253,8 @@ El sistema no emite facturas y el comercio no usa ARCA. Conserva nombre, email, 
 2. ~~Condición fiscal~~ Resuelta: no hay régimen fiscal ni ARCA, y no se configuran impuestos.
 3. Porcentaje de descuento por transferencia.
 4. Si el efectivo o la transferencia en el local tienen descuento.
-5. Si un producto puede estar en más de una subcategoría.
-6. Costo del envío a domicilio.
+5. ~~Si un producto puede estar en más de una subcategoría.~~ Resuelta: no, un producto va en una sola.
+6. ~~Costo del envío a domicilio.~~ Resuelta: está por fuera del sistema, se coordina con el cliente.
 7. Email que recibe los avisos de comprobantes.
 
 **Se definen en la etapa de despliegue:** dominio, plataforma de despliegue, proveedor de email, proveedor de almacenamiento externo y decisión sobre el botón de arrepentimiento.
