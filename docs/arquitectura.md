@@ -556,6 +556,8 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 | `TRANSFER_PROOF_TOO_LARGE` | 413 | Archivo mayor a 5 MB. | Comprimir o subir PDF. |
 | `TRANSFER_PROOF_FORMAT_INVALID` | 415 | Formato no permitido. | Subir JPG, PNG o PDF. |
 | `TRANSFER_PROOF_PENDING` | 409 | Ya hay un comprobante en revisión. | Esperar la revisión. |
+| `TOO_MANY_UPLOADS` | 429 | Más de 5 comprobantes subidos en una hora para un mismo pedido. | Esperar y volver a intentar. |
+| `PROOF_LINK_INVALID` | 403 | El enlace firmado del comprobante venció o fue alterado. | Volver a abrir el comprobante desde la lista del panel. |
 | `TRANSFER_PROOF_NOT_REVIEWABLE` | 409 | El comprobante ya fue revisado. | Revisar el estado actual. |
 | `REJECTION_REASON_REQUIRED` | 422 | Motivo de rechazo inválido. | Escribir un motivo de 10 a 300 caracteres. |
 | `SALE_ITEMS_EMPTY` | 422 | Venta sin productos. | Agregar al menos un producto. |

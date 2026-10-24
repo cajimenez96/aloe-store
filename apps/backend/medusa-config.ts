@@ -19,6 +19,7 @@ module.exports = defineConfig({
   },
   modules: [
     { resolve: "./src/modules/product-color" },
+    { resolve: "./src/modules/transfer-proof" },
     {
       // Imágenes de producto en local. La URL pública se arma con
       // MEDUSA_BACKEND_URL; el proveedor no la lee por su cuenta.

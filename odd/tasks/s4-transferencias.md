@@ -1,0 +1,28 @@
+# Sprint 4/5 - Transferencias completas (Aloe)
+
+Objective: el ciclo de la transferencia queda completo: comprobante, revision, vencimiento y avisos (docs/planning.md v3.1: HU-28, HU-29, HU-30, HU-39, HU-40, HU-41, HU-42, HU-43; la tarjeta HU-24/25/26 depende de SP-02 y queda afuera).
+Branch: main | Delivery: commits por unidad, push solo con OK del usuario | Runner: jest (backend), vitest (storefront), `npm run check`
+
+## Specs
+
+S1 (HU-28) "Acepta JPG, PNG o PDF de hasta 5 MB, validando el tipo por el contenido (SEC-51)." "Errores claros: `TRANSFER_PROOF_TOO_LARGE`, `TRANSFER_PROOF_FORMAT_INVALID`, `TRANSFER_PROOF_PENDING`, `ORDER_EXPIRED`." "El archivo se guarda en el almacenamiento privado (driver local en el MVP0) con nombre generado y hash SHA-256." "Después de un rechazo, puedo subir otro comprobante." "La página muestra el estado del último comprobante y, si fue rechazado, el motivo." "Límite de 5 subidas por hora por pedido (SEC-17)."
+S2 (HU-29) "Una extensión del panel muestra la cola de comprobantes en revisión, ordenada por antigüedad." "Veo el comprobante con un enlace firmado de 15 minutos. Los PDF se descargan (SEC-51)." "Se marca si el mismo archivo ya se usó en otro pedido (hash repetido)." "Aceptar captura el pago con el flujo nativo y el pedido queda pagado." "Rechazar exige un motivo de 10 a 300 caracteres (`REJECTION_REASON_REQUIRED`)." "Un comprobante ya revisado no se puede volver a revisar (`TRANSFER_PROOF_NOT_REVIEWABLE`)." "El vendedor ve la cola, pero no puede aceptar ni rechazar (`ROLE_NOT_ALLOWED`)."
+S3 (HU-30) "Un job del worker cancela con la cancelación nativa los pedidos sin comprobante aceptado después de `transfer_reservation_hours`." "Un pedido con un comprobante en revisión no se cancela hasta que el admin lo revise." "La cancelación libera el stock reservado." "Cada cancelación automática queda registrada."
+S4 (HU-39) Email de pedido pagado: numero, items, total, medio de pago y enlace con token; sin datos que no sean del pedido.
+S5 (HU-40) Email con datos de transferencia: ya existe (T7 de s3-checkout); falta que el enlace sirva para subir el comprobante.
+S6 (HU-41) "Se envía a `admin_notification_email` con enlace a la cola de revisión." "No incluye el comprobante adjunto ni datos bancarios del cliente." "Un reintento no genera avisos duplicados."
+S7 (HU-42) "El rechazo incluye el motivo y el enlace para subir otro comprobante." "La cancelación indica si fue por vencimiento o por el comercio."
+S8 (HU-43) "Límites de solicitudes por ruta según SEC-17, con `RATE_LIMITED`." "Límites de pedidos pendientes por email e IP según SEC-40, con `PENDING_ORDERS_LIMIT`." "Los valores son configurables sin cambiar código." "Las superaciones de límites quedan registradas (SEC-95)."
+
+## Tasks
+
+- T1 | S1,S2 | inline | [x*] | HU-28 y HU-29 backend: modulo `transfer-proof` (modelo, migracion, servicio), `lib/transfer-proofs/{validate,signed-link,rules,review,storage,secret,upload-middleware}.ts` (19 pruebas), rutas de tienda `POST/GET /store/order-access/:id/transfer-proofs`, rutas de admin `GET /admin/transfer-proofs` (cola), `GET .../:id/file` (enlace firmado), `POST .../accept` (captura nativa) y `POST .../reject`. Dependencia nueva: `multer` 2.5.0 (ya la usaba Medusa; ahora declarada). Evidencia en vivo (base descartable): sin token 404 `ORDER_ACCESS_DENIED`; texto o HTML con nombre .png 415 `TRANSFER_PROOF_FORMAT_INVALID`; 6 MB 413 `TRANSFER_PROOF_TOO_LARGE`; PNG valido 201 `pending_review`; con uno en revision 409 `TRANSFER_PROOF_PENDING`; archivo guardado con nombre aleatorio de 48 hex sin extension y `/static/<nombre>` da 404; cola en orden de antiguedad; archivo con enlace firmado 200 con `attachment`, `nosniff`, `no-store` y `CSP: sandbox`; enlace alterado 403 y sin sesion 401; vendedor ve la cola (200) y al aceptar o rechazar recibe 403 `ROLE_NOT_ALLOWED`; rechazo sin motivo 422 `REJECTION_REASON_REQUIRED`; rechazo valido, luego el cliente ve el estado `rejected` con el motivo y puede subir de nuevo; revisar de nuevo 409 `TRANSFER_PROOF_NOT_REVIEWABLE`; el mismo archivo en otro pedido marca `duplicate_in_other_order`; aceptar deja el pago `captured`; subir a un pedido pagado 409 `ORDER_ALREADY_PAID`. *PENDIENTE: la pantalla del panel (extension) y la pagina del cliente para subir; el limite de 5 por hora solo esta probado por unidad; `review.ts` se escribio junto con su prueba (no se observo un RED separado); el estado del pedido sigue `pending` tras aceptar (solo el pago queda `captured`); aceptar captura y luego marca el comprobante: si lo segundo falla queda pago capturado con comprobante en revision.
+- T2 | S3 | inline | [ ] | HU-30: job de vencimiento
+- T3 | S4,S6,S7 | inline | [ ] | HU-39, HU-41, HU-42: plantillas y suscriptores de email
+- T4 | S1,S2 | inline | [ ] | pantalla del panel (cola de comprobantes) y pagina del cliente para subir
+- T5 | S8 | inline | [ ] | HU-43: limites por ruta, configurables y registrados
+
+## Log
+
+L1 (2026-10-24, usuario): "Si, pusheemos y avancemos con los demas tickets. Ademas, me gustaria saber cuantos faltan para terminar el mvp 0". Faltan 101 de 209 puntos (24 de 50 tickets); sin tarjeta (SP-02, HU-24/25/26) se puede avanzar 76 puntos.
+L2: para recibir el multipart se usa `bodyParser: false` en el middleware de la ruta y multer en memoria con un limite de 5 MB + 1 byte, asi se distingue "demasiado grande" de "justo el maximo".

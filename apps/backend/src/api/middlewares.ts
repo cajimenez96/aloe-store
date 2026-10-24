@@ -6,6 +6,7 @@ import {
 import { enforceRole } from '../lib/roles/guard'
 import { blockNativeOrderRoutes } from '../lib/order-access/block-native'
 import { enforceSingleCategoryOnAdd } from '../lib/single-category/middleware'
+import { receiveProofUpload } from '../lib/transfer-proofs/upload-middleware'
 import { scrubTransferCode } from '../lib/transfer-discount/scrub-middleware'
 import { validateImageUploads } from '../lib/uploads/validate-image-uploads'
 
@@ -40,6 +41,13 @@ export default defineMiddlewares({
       // tienda (SEC-31, HU-22).
       matcher: '/store*',
       middlewares: [scrubTransferCode],
+    },
+    {
+      // Comprobante de transferencia: multipart, un archivo, validado por contenido (SEC-51).
+      method: ['POST'],
+      matcher: '/store/order-access/:id/transfer-proofs',
+      bodyParser: false,
+      middlewares: [receiveProofUpload],
     },
     {
       // Un producto va en una sola categoría (HU-07).
