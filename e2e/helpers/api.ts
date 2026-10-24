@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process"
 import path from "node:path"
-import { BACKEND, ADMIN_EMAIL, ADMIN_PASSWORD, SENTINELS } from "./env"
+import { createHmac } from "node:crypto"
+import { BACKEND, ADMIN_EMAIL, ADMIN_PASSWORD, MP_WEBHOOK_SECRET, SENTINELS, SIMULATOR, SIMULATOR_TOKEN } from "./env"
 
 type Json = Record<string, any>
 export type Reply = { status: number; json: Json }
@@ -26,7 +27,7 @@ export async function session() {
   return cached
 }
 
-export type Seed = { variantId: string; sku: string; promoCode: string; regionId: string }
+export type Seed = { variantId: string; sku: string; promoCode: string; regionId: string; lastVariantId: string }
 
 /** Una IP distinta por llamada evita que los límites por IP afecten a los escenarios. */
 let counter = Math.floor(Math.random() * 200) + 20
@@ -83,5 +84,83 @@ export function runExpiryJob() {
   } catch (error) {
     const output = error as { stdout?: Buffer; stderr?: Buffer }
     throw new Error(`Falló el job de vencimiento:\n${String(output.stdout ?? "").slice(-1500)}\n${String(output.stderr ?? "").slice(-1500)}`)
+  }
+}
+
+// --- Mercado Pago simulado -------------------------------------------------------------
+
+export async function sim(method: string, path: string, body?: unknown) {
+  const response = await fetch(SIMULATOR + path, {
+    method,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${SIMULATOR_TOKEN}` },
+    body: body ? JSON.stringify(body) : undefined,
+    redirect: "manual",
+  })
+  return { status: response.status, json: (await response.json().catch(() => ({}))) as Json }
+}
+
+/** Referencia (id de la sesión de pago) de la última preferencia creada en el simulador. */
+export async function lastReference(): Promise<string> {
+  const state = (await sim("GET", "/__sim/state")).json
+  return state.preferences.at(-1)[1].external_reference as string
+}
+
+/** Pago que el cliente hace en la página del simulador (aprobar o rechazar), sin navegador. */
+export async function payInSimulator(payUrl: string, action: "approve" | "reject") {
+  return fetch(`${payUrl}/${action}`, { method: "POST", redirect: "manual" })
+}
+
+export async function simPayments(reference: string): Promise<Json[]> {
+  return ((await sim("GET", "/__sim/state")).json.payments as Json[]).filter((p) => p.external_reference === reference)
+}
+
+/** Notificación firmada con una implementación propia del algoritmo de Mercado Pago. */
+export async function sendWebhook(paymentId: string | number, opts: { secret?: string; ts?: number; requestId?: string } = {}) {
+  const requestId = opts.requestId ?? `e2e-${Date.now()}-${Math.random()}`
+  const ts = opts.ts ?? Date.now()
+  const v1 = createHmac("sha256", opts.secret ?? MP_WEBHOOK_SECRET)
+    .update(`id:${String(paymentId).toLowerCase()};request-id:${requestId};ts:${ts};`)
+    .digest("hex")
+  const response = await fetch(`${BACKEND}/hooks/mercadopago?data.id=${paymentId}&type=payment`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-request-id": requestId, "x-signature": `ts=${ts},v1=${v1}` },
+    body: JSON.stringify({ action: "payment.updated", type: "payment", data: { id: String(paymentId) } }),
+  })
+  return { status: response.status, json: (await response.json().catch(() => ({}))) as Json }
+}
+
+export async function ordersCount(): Promise<number> {
+  const { admin } = await session()
+  return (await call("GET", "/admin/orders?limit=1&fields=id", admin)).json.count as number
+}
+
+/** Un carrito listo para pagar: producto, datos del cliente y retiro en el local. */
+export async function newCardCart(seed: Seed, variantId: string, email: string, quantity = 1) {
+  const { store } = await session()
+  const headers = { ...store, ...freshIp() }
+  const cart = (await call("POST", "/store/carts", headers, { region_id: seed.regionId })).json.cart
+  await call("POST", `/store/carts/${cart.id}/line-items`, headers, { variant_id: variantId, quantity })
+  const option = (await call("GET", `/store/shipping-options?cart_id=${cart.id}`, headers)).json.shipping_options.find((o: Json) => o.name.startsWith("Retiro"))
+  await call("POST", `/store/carts/${cart.id}`, headers, { email, shipping_address: { first_name: "Prueba", last_name: "Tarjeta", phone: "1155550000", country_code: "ar" } })
+  await call("POST", `/store/carts/${cart.id}/shipping-methods`, headers, { option_id: option.id })
+  return { id: cart.id as string, headers }
+}
+
+export const chooseCard = (cart: { id: string; headers: Record<string, string> }) =>
+  call("POST", `/store/checkout/${cart.id}/payment-method`, cart.headers, { method: "card" })
+
+export const paymentStatus = (cart: { id: string; headers: Record<string, string> }) =>
+  call("GET", `/store/checkout/${cart.id}/payment-status`, cart.headers)
+
+/** Corre el job de conciliación del build compilado, en un proceso aparte. */
+export function runReconcileJob() {
+  const dir = process.env.E2E_BACKEND_DIR
+  if (!dir) throw new Error("Falta E2E_BACKEND_DIR.")
+  const probe = path.join(__dirname, "..", "probes", "reconcile-job.cjs")
+  try {
+    execFileSync("npx", ["medusa", "exec", probe], { cwd: dir, env: process.env, stdio: "pipe" })
+  } catch (error) {
+    const output = error as { stdout?: Buffer; stderr?: Buffer }
+    throw new Error(`Falló el job de conciliación:\n${String(output.stdout ?? "").slice(-1500)}\n${String(output.stderr ?? "").slice(-1500)}`)
   }
 }

@@ -15,9 +15,9 @@ test("el descuento por transferencia no se puede usar con tarjeta ni se filtra e
   expect(card.json.cart.total).toBe(4000)
   expect(card.json.cart.discount_total).toBe(0)
 
-  // Con tarjeta no se puede confirmar (todavía sin proveedor) y la ruta nativa está cerrada.
+  // Con tarjeta el pedido no se confirma a mano (se crea al llegar el pago) y la ruta nativa está cerrada.
   const complete = await call("POST", `/store/checkout/${cart.id}/complete`, web)
-  expect(complete.json.code).toBe("PAYMENT_PROVIDER_UNAVAILABLE")
+  expect(complete.json.code).toBe("CARD_PAYMENT_REQUIRED")
   const native = await call("POST", `/store/carts/${cart.id}/complete`, web)
   expect(native.json.code).toBe("ORDER_ACCESS_DENIED")
 
@@ -34,8 +34,4 @@ test("el descuento por transferencia no se puede usar con tarjeta ni se filtra e
     JSON.stringify((await call("GET", `/store/carts/${cart.id}`, web)).json),
   ]
   for (const body of bodies) expect(body).not.toContain(seed.promoCode)
-})
-
-test.fixme("compra con tarjeta en sandbox confirmada por conciliación", async () => {
-  // Pendiente de SP-02, HU-24, HU-25 y HU-26: falta la cuenta de pruebas de Mercado Pago.
 })

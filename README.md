@@ -131,3 +131,20 @@ Conventional commits con el detalle en español: `feat: se agrega filtro por sub
 `npm run e2e` (necesita `docker compose up -d`) compila el backend y el storefront en modo producción, los levanta en los puertos 9300 y 3100 con una base de datos descartable, corre los escenarios de Playwright (`e2e/tests`), comprueba que el log del servidor no tenga datos personales y lo borra todo. Deja el reporte en `reports/e2e-produccion.json`. No toca la base de desarrollo ni el `.next` de `npm run dev`. Usa el Chromium que ya tengas en la caché de Playwright; si no hay, `npx playwright install chromium`. `E2E_KEEP=1 npm run e2e` deja el entorno levantado para depurar.
 
 `node scripts/concurrency/last-unit.mjs` (contra un backend de pruebas) corre la prueba de la última unidad de stock; `scripts/k6/last-unit.js` es el mismo escenario para k6.
+
+### Pago con tarjeta (Mercado Pago)
+
+Sin `MP_ACCESS_TOKEN` la tienda acepta solo transferencia. Para probar la tarjeta sin cuenta ni internet se usa el simulador local:
+
+```bash
+npm run mp:simulator            # :9400, con una página de pago de prueba
+# en apps/backend/.env (a mano):
+#   MP_ACCESS_TOKEN=TEST-simulador   MP_API_BASE=http://localhost:9400
+#   MP_WEBHOOK_SECRET=<un secreto largo de prueba>
+npm run setup:store             # habilita el proveedor en la región
+```
+
+- `MP_ACCESS_TOKEN` (credencial de prueba o producción), `MP_API_BASE` (por defecto la API real; el simulador en pruebas) y `MP_WEBHOOK_SECRET` (secreto de firma del webhook).
+- `MP_NOTIFICATION_URL` y `MP_BACK_URL_BASE`: opcionales. Sin URL pública la preferencia se crea sin ellas y el cliente vuelve a mano con «verificá tu pago»; el job de conciliación confirma los pagos que no avisaron.
+- `MP_RECONCILE_AFTER_MINUTES` (por defecto `15`) y `MP_RECONCILE_EVERY_MINUTES` (por defecto `5`): cuándo y cada cuánto se concilian los pagos pendientes.
+- `npm run mp:webhook -- --payment <id> --scenario valid|invalid-signature|expired|replay` envía una notificación firmada al backend local (necesita `MP_WEBHOOK_SECRET`).

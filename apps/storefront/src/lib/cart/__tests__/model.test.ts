@@ -180,6 +180,7 @@ describe("parseCartError · confirmar el pedido", () => {
       CHECKOUT_INCOMPLETE: /datos|entrega/i,
       CART_ALREADY_COMPLETED: /ya fue confirmado/i,
       DISCOUNT_PAYMENT_MISMATCH: /transferencia/i,
+      CARD_PAYMENT_REQUIRED: /tarjeta/i,
     }
     for (const [code, pattern] of Object.entries(cases)) {
       const error = parseCartError({ code, message: "detalle interno select * from x" })

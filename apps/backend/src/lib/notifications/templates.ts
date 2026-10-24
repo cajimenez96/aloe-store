@@ -137,7 +137,7 @@ export const TEMPLATES = {
       subject: "Te devolvimos el pago",
       lines: [
         `Hola ${data.name}`,
-        `Recibimos tu pago de ${data.amount}, pero la última unidad de tu pedido se agotó justo antes de confirmarlo. No pudimos armar el pedido, así que te devolvimos el dinero.`,
+        `Recibimos tu pago de ${data.amount}, pero no pudimos armar el pedido (por ejemplo, porque se agotó una unidad justo antes de confirmarlo). Por eso te devolvimos el dinero.`,
         "El reembolso puede demorar unos días en verse en tu tarjeta. Perdón por el inconveniente: si todavía querés los productos, podés volver a intentarlo en la tienda.",
       ],
     }),

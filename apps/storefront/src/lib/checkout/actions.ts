@@ -6,7 +6,9 @@ import { redirect } from "next/navigation"
 import { getEnv } from "../env"
 import { CART_COOKIE } from "../cart/model"
 import { isOrderId, isOrderToken, orderCookieName, orderCookieOptions } from "../order/model"
+import { isPaymentUrl } from "../payment/return"
 import type { CartActionResult } from "../cart/actions"
+import type { CartError } from "../cart/model"
 import { cartFetch, readCartId } from "../cart/api"
 import { getShippingChoices } from "./api"
 import { type CheckoutField, parseCheckoutForm } from "./schema"
@@ -134,4 +136,27 @@ export async function placeOrder(): Promise<CartActionResult> {
   store.delete(CART_COOKIE)
   revalidatePath("/", "layout")
   redirect(`/pedido/${order_id}`)
+}
+
+/**
+ * Empieza el pago con tarjeta (planning.md, HU-24): pide al backend la sesión de Mercado
+ * Pago y devuelve el enlace de pago al que se redirige al cliente. El total lo define
+ * Medusa; acá no viaja ningún monto.
+ */
+export async function startCardPayment(): Promise<{ ok: true; url: string } | { ok: false; error: CartError }> {
+  const cartId = await readCartId()
+  if (!cartId) return { ok: false, error: { code: "CART_ERROR", message: "Tu carrito está vacío." } }
+
+  const result = await cartFetch<{ payment_session: { redirect_url: string | null } | null }>(
+    `/store/checkout/${cartId}/payment-method`,
+    { method: "POST", body: { method: "card" } }
+  )
+  if (!result.ok) return { ok: false, error: result.error }
+
+  const url = result.body.payment_session?.redirect_url
+  if (!isPaymentUrl(url)) {
+    return { ok: false, error: { code: "PAYMENT_PROVIDER_UNAVAILABLE", message: "No pudimos conectar con Mercado Pago. Probá de nuevo o pagá por transferencia." } }
+  }
+  revalidatePath("/checkout")
+  return { ok: true, url }
 }

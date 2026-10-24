@@ -57,7 +57,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const accepted = await req.scope
     .resolve<TransferProofModuleService>(TRANSFER_PROOF_MODULE)
     .listTransferProofs({ order_id: order.id, status: "accepted" } as never)
-  const paid = accepted.length > 0
+  // Un pedido con tarjeta nace cuando el pago ya está aprobado (arquitectura.md, 10.2).
+  const paid = accepted.length > 0 || metadata.payment_method === "card"
   const pending = order.status === "pending" && !paid
   let bank: BankAccount | null = null
   if (isTransfer && pending) {

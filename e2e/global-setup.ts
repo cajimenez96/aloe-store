@@ -55,7 +55,26 @@ export default async function globalSetup() {
     await call("POST", `/admin/inventory-items/${item.id}/location-levels`, admin, { location_id: location.id, stocked_quantity: 500 })
   }
 
-  const seed: Seed = { variantId: product.variants[0].id, sku, promoCode, regionId: region.id }
+  // Un producto con una sola unidad para el caso de la última unidad con tarjeta.
+  let last = (await call("GET", "/admin/products?handle=ultima-e2e&fields=id,*variants", admin)).json.products?.[0]
+  if (!last) {
+    const lastSku = `ULT-${Date.now()}`
+    last = (
+      await call("POST", "/admin/products", admin, {
+        title: "Ultima unidad E2E",
+        handle: "ultima-e2e",
+        status: "published",
+        sales_channels: channels.filter((c: any) => c.name === "Web").map((c: any) => ({ id: c.id })),
+        shipping_profile_id: profile.id,
+        options: [{ title: "Talle", values: ["U"] }],
+        variants: [{ title: "U", sku: lastSku, manage_inventory: true, options: { Talle: "U" }, prices: [{ amount: 2000, currency_code: "ars" }] }],
+      })
+    ).json.product
+    const lastItem = (await call("GET", "/admin/inventory-items?limit=100", admin)).json.inventory_items.find((i: any) => i.sku === lastSku)
+    await call("POST", `/admin/inventory-items/${lastItem.id}/location-levels`, admin, { location_id: location.id, stocked_quantity: 1 })
+  }
+
+  const seed: Seed = { variantId: product.variants[0].id, sku, promoCode, regionId: region.id, lastVariantId: last.variants[0].id }
   fs.writeFileSync(path.join(__dirname, ".seed.json"), JSON.stringify(seed))
   void store
 }

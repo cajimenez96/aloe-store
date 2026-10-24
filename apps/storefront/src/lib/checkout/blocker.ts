@@ -15,8 +15,5 @@ export function confirmBlocker(input: Input): string | null {
     return "Guardá tus datos y la forma de entrega para poder confirmar."
   }
   if (!input.method) return "Elegí cómo querés pagar para confirmar el pedido."
-  if (input.method === "card") {
-    return "El pago con tarjeta todavía no está disponible. Elegí transferencia."
-  }
   return null
 }

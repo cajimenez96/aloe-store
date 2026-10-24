@@ -15,3 +15,7 @@ export const SENTINELS = {
   holder: "Titular Reservado SRL",
   proofMarker: "CONTENIDO-COMPROBANTE-SECRETO",
 }
+
+export const SIMULATOR = process.env.E2E_SIMULATOR_URL ?? "http://localhost:9400"
+export const SIMULATOR_TOKEN = process.env.E2E_SIMULATOR_TOKEN ?? "TEST-simulador-e2e"
+export const MP_WEBHOOK_SECRET = process.env.E2E_MP_WEBHOOK_SECRET ?? "secreto-webhook-e2e-0123456789abcdef"

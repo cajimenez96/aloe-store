@@ -143,6 +143,8 @@ export function parseCartError(body: { code?: unknown; message?: unknown }): Car
       return { code: String(body.code), message: "Ese medio de pago no está disponible por ahora. Probá con otro." }
     case "CHECKOUT_INCOMPLETE":
       return { code: String(body.code), message: "Completá tus datos y la forma de entrega para confirmar." }
+    case "CARD_PAYMENT_REQUIRED":
+      return { code: String(body.code), message: "Para pagar con tarjeta usá el botón de Mercado Pago." }
     case "CART_ALREADY_COMPLETED":
       return { code: String(body.code), message: "Este pedido ya fue confirmado. Revisá tu email." }
     case "DISCOUNT_PAYMENT_MISMATCH":

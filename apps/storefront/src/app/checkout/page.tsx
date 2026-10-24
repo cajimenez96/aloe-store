@@ -16,7 +16,12 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-async function Checkout() {
+async function Checkout({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const rejected = (await searchParams).pago === "rechazado";
   const raw = await getCart();
   const cart = buildCartView(raw);
   if (!raw || cart.lines.length === 0) redirect("/carrito");
@@ -49,79 +54,90 @@ async function Checkout() {
   const selected = raw.shipping_methods?.[0]?.shipping_option_id ?? undefined;
 
   return (
-    <div className="grid gap-10 md:grid-cols-[1fr_20rem]">
-      <div className="flex flex-col gap-10">
-        <CheckoutForm
-          choices={choices}
-          currencyCode={cart.currencyCode}
-          initial={{
-            name: [address?.first_name, address?.last_name]
-              .filter(Boolean)
-              .join(" "),
-            email: raw.email ?? "",
-            phone: address?.phone ?? "",
-            document:
-              typeof raw.metadata?.customer_document === "string"
-                ? raw.metadata.customer_document
-                : "",
-            shippingOptionId: selected,
-            street: address?.address_1 ?? "",
-            city: address?.city ?? "",
-            province: address?.province ?? "",
-            postalCode: address?.postal_code ?? "",
-          }}
-        />
-        <PaymentMethod
-          initial={method}
-          total={cart.total}
-          itemsSubtotal={cart.subtotal}
-          shippingTotal={cart.shippingTotal}
-          currencyCode={cart.currencyCode}
-          transferPercent={transferPercent}
-        />
-        <ConfirmOrder blocker={blocker} />
+    <>
+      {rejected && (
+        <p
+          role="alert"
+          className="mb-6 rounded-md border border-ink bg-pistachio px-4 py-3 text-sm"
+        >
+          Mercado Pago no aprobó el pago. Podés volver a intentar con otra
+          tarjeta o pagar por transferencia.
+        </p>
+      )}
+      <div className="grid gap-10 md:grid-cols-[1fr_20rem]">
+        <div className="flex flex-col gap-10">
+          <CheckoutForm
+            choices={choices}
+            currencyCode={cart.currencyCode}
+            initial={{
+              name: [address?.first_name, address?.last_name]
+                .filter(Boolean)
+                .join(" "),
+              email: raw.email ?? "",
+              phone: address?.phone ?? "",
+              document:
+                typeof raw.metadata?.customer_document === "string"
+                  ? raw.metadata.customer_document
+                  : "",
+              shippingOptionId: selected,
+              street: address?.address_1 ?? "",
+              city: address?.city ?? "",
+              province: address?.province ?? "",
+              postalCode: address?.postal_code ?? "",
+            }}
+          />
+          <PaymentMethod
+            initial={method}
+            total={cart.total}
+            itemsSubtotal={cart.subtotal}
+            shippingTotal={cart.shippingTotal}
+            currencyCode={cart.currencyCode}
+            transferPercent={transferPercent}
+          />
+          <ConfirmOrder blocker={blocker} method={method} />
+        </div>
+        <aside
+          aria-label="Resumen del pedido"
+          className="h-fit rounded-lg border border-hairline p-5"
+        >
+          <h2 className="mb-4 font-display text-2xl">Tu pedido</h2>
+          <ul className="flex flex-col gap-2 text-sm">
+            {cart.lines.map((line) => (
+              <li key={line.id} className="flex justify-between gap-3">
+                <span>
+                  {line.quantity} × {line.title}
+                  {line.variantTitle ? ` (${line.variantTitle})` : ""}
+                </span>
+                <span>{formatPrice(line.total, cart.currencyCode)}</span>
+              </li>
+            ))}
+          </ul>
+          <dl className="mt-4 flex flex-col gap-1 border-t border-hairline pt-4 text-sm">
+            <div className="flex justify-between">
+              <dt>Subtotal</dt>
+              <dd>{formatPrice(cart.subtotal, cart.currencyCode)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>Envío</dt>
+              <dd>{shippingLabel}</dd>
+            </div>
+            <div className="flex justify-between text-base">
+              <dt>Total</dt>
+              <dd>{formatPrice(cart.total, cart.currencyCode)}</dd>
+            </div>
+          </dl>
+        </aside>
       </div>
-      <aside
-        aria-label="Resumen del pedido"
-        className="h-fit rounded-lg border border-hairline p-5"
-      >
-        <h2 className="mb-4 font-display text-2xl">Tu pedido</h2>
-        <ul className="flex flex-col gap-2 text-sm">
-          {cart.lines.map((line) => (
-            <li key={line.id} className="flex justify-between gap-3">
-              <span>
-                {line.quantity} × {line.title}
-                {line.variantTitle ? ` (${line.variantTitle})` : ""}
-              </span>
-              <span>{formatPrice(line.total, cart.currencyCode)}</span>
-            </li>
-          ))}
-        </ul>
-        <dl className="mt-4 flex flex-col gap-1 border-t border-hairline pt-4 text-sm">
-          <div className="flex justify-between">
-            <dt>Subtotal</dt>
-            <dd>{formatPrice(cart.subtotal, cart.currencyCode)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt>Envío</dt>
-            <dd>{shippingLabel}</dd>
-          </div>
-          <div className="flex justify-between text-base">
-            <dt>Total</dt>
-            <dd>{formatPrice(cart.total, cart.currencyCode)}</dd>
-          </div>
-        </dl>
-      </aside>
-    </div>
+    </>
   );
 }
 
-export default function CheckoutPage() {
+export default function CheckoutPage(props: PageProps<"/checkout">) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
       <h1 className="font-display text-4xl">Finalizar compra</h1>
       <Suspense fallback={<p aria-busy="true">Cargando…</p>}>
-        <Checkout />
+        <Checkout searchParams={props.searchParams} />
       </Suspense>
     </main>
   );

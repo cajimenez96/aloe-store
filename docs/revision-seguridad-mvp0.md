@@ -38,9 +38,17 @@ Revisó el código quien lo escribió, con tres revisiones independientes adicio
 - Si falla el guardado del token justo después de crear un pedido, ese pedido queda sin forma de abrirse.
 - El vencimiento de un token se extiende si un admin edita un pedido ya cerrado.
 
+## Actualización 2026-10-25: pago con tarjeta sobre el simulador
+
+Se construyeron el proveedor de Mercado Pago, el webhook firmado, la conciliación y la consulta de regreso, y se probaron con el simulador local (20 escenarios de punta a punta en los builds de producción). Efecto sobre el checklist:
+
+- **Ítem 7 (webhook con el simulador):** cumple con el simulador. Firma válida (crea el pedido), firma inválida (`401 WEBHOOK_SIGNATURE_INVALID`, registrada como `webhook_rejected`), notificación vencida (401), repetida (no duplica) y monto distinto (`PAYMENT_AMOUNT_MISMATCH`, sin pedido). **Falta** la verificación con notificaciones reales de Mercado Pago (HU-51, requiere URL pública) y contrastar el formato real de `x-signature` y de la API con el sandbox (SP-02).
+- **Ítem 8 (descuento con tarjeta):** ahora cumple de punta a punta: aplicar el código a mano y armar la sesión de tarjeta por la API nativa deja un pago por el total con descuento, y el hook `DISCOUNT_PAYMENT_MISMATCH` impide crear el pedido; el pago se reembolsa.
+- **Ítem 13:** suma el evento «webhooks rechazados por firma inválida».
+
 ## Decisiones pendientes del Product Owner
 
-1. **Webhook y pago con tarjeta (ítems 7 y 8).** No se pueden cumplir hasta tener la cuenta de pruebas de Mercado Pago (SP-02). Opciones: aceptar el MVP0 cerrado solo con transferencias y dejar tarjeta, webhook y conciliación como la siguiente entrega, o no darlo por terminado hasta integrarla.
+1. **Verificación real de Mercado Pago (ítem 7).** Todo el flujo de tarjeta está construido y probado con un simulador, pero no contra el sandbox real. Para cerrar SP-02 hace falta la aplicación y las cuentas de prueba de Mercado Pago (a cargo del dueño). Opciones: dar el MVP0 por terminado con el simulador y verificar contra el sandbox al desplegar (HU-51), o esperar a hacerlo antes.
 2. **Dependencias con vulnerabilidades altas (ítem 12).** Aceptar el riesgo mientras sean transitivas de Medusa y revisarlas con cada actualización de Medusa, o pedir que se evalúe una actualización mayor.
 3. **Avisos sin corregir.** Los de menor impacto se proponen para el MVP1; si alguno debe corregirse antes de abrir al público, indicarlo.
 

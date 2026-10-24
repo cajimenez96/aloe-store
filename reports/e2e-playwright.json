@@ -116,12 +116,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4553,
+                  "duration": 5083,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:26.301Z",
+                  "startTime": "2026-10-24T20:24:26.515Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -158,12 +158,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5343,
+                  "duration": 5224,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:31.099Z",
+                  "startTime": "2026-10-24T20:24:31.796Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -200,12 +200,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4957,
+                  "duration": 4608,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:36.451Z",
+                  "startTime": "2026-10-24T20:24:37.029Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -242,12 +242,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2347,
+                  "duration": 2266,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:41.417Z",
+                  "startTime": "2026-10-24T20:24:41.644Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -284,12 +284,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 483,
+                  "duration": 491,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:43.771Z",
+                  "startTime": "2026-10-24T20:24:43.918Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -301,58 +301,6 @@
           "file": "05-descuento-con-tarjeta.spec.ts",
           "line": 5,
           "column": 5
-        },
-        {
-          "title": "compra con tarjeta en sandbox confirmada por conciliación",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 120000,
-              "annotations": [
-                {
-                  "type": "fixme",
-                  "location": {
-                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/05-descuento-con-tarjeta.spec.ts",
-                    "line": 39,
-                    "column": 6
-                  }
-                }
-              ],
-              "expectedStatus": "skipped",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "skipped",
-                  "duration": 0,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T19:55:44.259Z",
-                  "annotations": [
-                    {
-                      "type": "fixme",
-                      "location": {
-                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/05-descuento-con-tarjeta.spec.ts",
-                        "line": 39,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "attachments": []
-                }
-              ],
-              "status": "skipped"
-            }
-          ],
-          "id": "898a459122fa64de1a1d-4f95b2ff0da2980a5b05",
-          "file": "05-descuento-con-tarjeta.spec.ts",
-          "line": 39,
-          "column": 6
         }
       ]
     },
@@ -378,12 +326,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2544,
+                  "duration": 1928,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:44.261Z",
+                  "startTime": "2026-10-24T20:24:44.416Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -420,12 +368,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1033,
+                  "duration": 1103,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:46.813Z",
+                  "startTime": "2026-10-24T20:24:46.354Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -462,12 +410,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 26,
+                  "duration": 17,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:47.855Z",
+                  "startTime": "2026-10-24T20:24:47.464Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -496,12 +444,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 62,
+                  "duration": 57,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:47.885Z",
+                  "startTime": "2026-10-24T20:24:47.485Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -530,12 +478,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1330,
+                  "duration": 1489,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:47.951Z",
+                  "startTime": "2026-10-24T20:24:47.546Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -572,12 +520,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1833,
+                  "duration": 2049,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:49.286Z",
+                  "startTime": "2026-10-24T20:24:49.040Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -614,12 +562,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1134,
+                  "duration": 1184,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T19:55:51.126Z",
+                  "startTime": "2026-10-24T20:24:51.097Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -633,14 +581,392 @@
           "column": 5
         }
       ]
+    },
+    {
+      "title": "11-tarjeta-navegador.spec.ts",
+      "file": "11-tarjeta-navegador.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "compra con tarjeta: paga en Mercado Pago, vuelve, se verifica y queda el pedido pagado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3357,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T20:24:52.289Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "57f6cef19963252b3c9a-7b638661ab82134db064",
+          "file": "11-tarjeta-navegador.spec.ts",
+          "line": 31,
+          "column": 5
+        },
+        {
+          "title": "compra con tarjeta rechazada: vuelve al checkout con el aviso y puede pagar por transferencia",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3385,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T20:24:55.654Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "57f6cef19963252b3c9a-5274db01cf66ed44ac46",
+          "file": "11-tarjeta-navegador.spec.ts",
+          "line": 51,
+          "column": 5
+        },
+        {
+          "title": "verificar el pago antes de pagar espera, sin crear nada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3021,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T20:24:59.047Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "57f6cef19963252b3c9a-d5f6b481375b8c7d13ef",
+          "file": "11-tarjeta-navegador.spec.ts",
+          "line": 67,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+      "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "webhook: firma inválida y vencida se rechazan; la válida crea el pedido; repetirla no duplica",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 925,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T20:25:02.076Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-d26f2c806ac876e8e8e1",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 17,
+          "column": 5
+        },
+        {
+          "title": "monto distinto: el pago no se marca como cobrado y no se crea el pedido",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 806,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T20:25:03.005Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-0e6124d04b55e1312015",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 45,
+          "column": 5
+        },
+        {
+          "title": "sin webhook: el job de conciliación confirma el pago aprobado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3371,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T20:25:03.815Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-0faa297d8e3e11fef451",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 58,
+          "column": 5
+        },
+        {
+          "title": "la última unidad: el primer pago crea el pedido y el segundo se reembolsa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1505,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T20:25:07.191Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-ae429afe92315471cea1",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 67,
+          "column": 5
+        },
+        {
+          "title": "el descuento de transferencia no pasa con tarjeta, ni armando la sesión por la API nativa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1213,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T20:25:08.700Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-dacc77593293d3122f22",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 85,
+          "column": 5
+        }
+      ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-24T19:55:25.780Z",
-    "duration": 26508.233,
-    "expected": 12,
-    "skipped": 1,
+    "startTime": "2026-10-24T20:24:25.919Z",
+    "duration": 44027.331,
+    "expected": 20,
+    "skipped": 0,
     "unexpected": 0,
     "flaky": 0
   }

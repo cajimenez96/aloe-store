@@ -105,7 +105,8 @@ ecommerce-mvp0/
 │   └── shared-types/            # DTOs compartidos
 ├── scripts/
 │   ├── setup-store.ts           # Configuración base, idempotente (sección 5)
-│   ├── simulate-mp-webhook.ts   # Notificaciones firmadas de prueba (sección 10.4)
+│   ├── mp/simulator.mjs         # Simulador local de Mercado Pago (sección 10.4)
+│   ├── mp/simulate-webhook.mjs  # Notificaciones firmadas de prueba (sección 10.4)
 │   └── check.sh                 # Lint, tipos, pruebas y build
 ├── storage/                     # Fuera de Git
 │   └── private/proofs/          # Comprobantes. Nunca se sirve de forma directa.
@@ -252,14 +253,16 @@ Las promociones automáticas se aplican cuando el carrito cumple sus condiciones
 4. El backend valida la firma, consulta el pago a la API de Mercado Pago, verifica monto, moneda y referencia, y actualiza el pago (`seguridad.md`, SEC-32).
 5. La página de regreso muestra el estado que consulta el backend.
 
-### 10.2 Decisión pendiente: cuándo se crea el pedido
+### 10.2 Cuándo se crea el pedido
 
 | Opción | Ventaja | Riesgo |
 |---|---|---|
 | **A.** El carrito se completa al llegar el pago aprobado | No quedan pedidos sin pagar | El stock no está reservado mientras el cliente paga. Hay que verificar stock al completar y reembolsar si ya no hay. |
 | **B.** El carrito se completa antes de redirigir, con el pago pendiente | El stock queda reservado | Quedan pedidos sin pagar si el cliente abandona. Necesitan vencimiento. |
 
-La decisión se toma en SP-02 según cómo funcione el plugin elegido o el contrato de proveedores de Medusa. Recomendación inicial: **opción A**, porque es el comportamiento habitual de los proveedores de pago de Medusa y evita pedidos fantasma. La verificación de stock al completar y el reembolso automático forman parte de la historia.
+**Decisión: opción A. [Implementado y verificado con el simulador]** El proveedor de pago propio (`modules/mercadopago-payment`) crea la preferencia al elegir tarjeta. Cuando el pago aprobado se confirma (webhook, conciliación o consulta de regreso), `lib/mercadopago/settle.ts` ejecuta el flujo nativo `processPaymentWorkflow` con la acción `successful`: autoriza la sesión, captura el pago y completa el carrito, que crea el pedido. Si en ese momento no se puede crear el pedido (por ejemplo, se agotó el stock o el carrito tiene el descuento de transferencia), el pago se reembolsa por la API de Mercado Pago y se avisa al cliente por email. Un pago con monto, moneda o referencia distintos **no** se captura ni se reembolsa solo: se registra `PAYMENT_AMOUNT_MISMATCH` y lo resuelve una persona.
+
+Se eligió un proveedor propio, y no un plugin, para controlar la validación de la firma, la verificación del monto y que el estado salga siempre de la API (SEC-32 y SEC-33). La evaluación de los plugins existentes con los criterios de SEC-81 queda pendiente en SP-02.
 
 ### 10.3 Conciliación
 
@@ -274,9 +277,9 @@ Dos límites de Mercado Pago condicionan el desarrollo local:
 
 Por eso las pruebas se organizan en dos niveles.
 
-**Nivel 1: siempre disponible, sin URL pública.**
+**Nivel 1: siempre disponible, sin URL pública. [Implementado]** `npm run mp:simulator` levanta un simulador local de Mercado Pago (API de preferencias, pagos, búsqueda y reembolsos, más una página de pago con «Aprobar» y «Rechazar»); se usa con `MP_API_BASE=http://localhost:9400`. `npm run mp:webhook -- --payment <id> --scenario valid|invalid-signature|expired|replay` envía notificaciones firmadas.
 
-1. **Notificaciones simuladas.** `scripts/simulate-mp-webhook.ts` envía al backend local notificaciones con una firma generada con un secreto de prueba local (no el de Mercado Pago). Permite probar firma válida, firma inválida, notificación vencida, notificación repetida y monto distinto.
+1. **Notificaciones simuladas.** `scripts/mp/simulate-webhook.mjs` envía al backend local notificaciones con una firma generada con un secreto de prueba local (no el de Mercado Pago). Permite probar firma válida, firma inválida, notificación vencida, notificación repetida y monto distinto.
 2. **Conciliación.** El job de la sección 10.3 consulta a la API de Mercado Pago, con credenciales de prueba, los pagos pendientes. En local es el mecanismo principal de confirmación: permite completar un pago real de sandbox sin URL pública.
 3. **Retorno manual.** Después de pagar en el sitio de Mercado Pago, la persona vuelve a mano a la página del pedido, que muestra el estado consultado al backend (SEC-33).
 4. **URLs opcionales.** `MP_NOTIFICATION_URL` y `MP_BACK_URL_BASE` son opcionales: si no están definidas, la preferencia se crea sin ellas.
@@ -365,7 +368,8 @@ La aplicación y quita de promociones no se expone al cliente. La hace el backen
 | GET | `/store/order-access/:id` | Token del pedido | Detalle del pedido para el cliente invitado. |
 | POST | `/store/order-access/:id/transfer-proofs` | Token del pedido | Subir comprobante. |
 | GET | `/store/order-access/:id/transfer-proofs` | Token del pedido | Estado del último comprobante y motivo de rechazo. |
-| POST | `/hooks/mercadopago` | Firma de Mercado Pago | Webhook (solo si se desarrolla el proveedor propio; con plugin, la ruta la define el plugin). En local se prueba con el simulador (sección 10.4). |
+| GET | `/store/checkout/:cart_id/payment-status` | Clave publicable | Estado del pago con tarjeta al volver de Mercado Pago. Concilia consultando a Mercado Pago; si el pedido ya existe devuelve su id y un token de acceso. Nunca lee la URL de regreso (SEC-33). **[Confirmado en HU-24]** |
+| POST | `/hooks/mercadopago` | Firma de Mercado Pago | Webhook propio. Valida la firma (HMAC SHA256, comparación en tiempo constante, ventana de 5 minutos) antes de procesar: inválida → 401 `WEBHOOK_SIGNATURE_INVALID`. Consulta el pago a la API y verifica monto, moneda y referencia; repetirla no duplica nada. La ruta nativa `/hooks/payment/:provider` de Medusa no sirve porque responde 200 antes de validar. **[Confirmado en HU-25]** |
 
 **Admin**
 
@@ -567,6 +571,7 @@ Validaciones: CBU o CVU de 22 dígitos; alias de 6 a 20 caracteres con letras, n
 | `PRODUCT_MULTIPLE_CATEGORIES` | 400 | Un producto quedaría en más de una categoría. | Dejarlo en una sola categoría o subcategoría. |
 | `ROLE_NOT_ALLOWED` | 403 | El rol no tiene permiso para la acción. | Pedir el permiso al admin. |
 | `WEBHOOK_SIGNATURE_INVALID` | 401 | Firma de Mercado Pago inválida. | No aplica al usuario. Se registra y se descarta. |
+| `CARD_PAYMENT_REQUIRED` | 422 | Se intentó confirmar a mano un pedido con tarjeta. | Pagar desde Mercado Pago: el pedido se crea al llegar el pago. |
 
 ## 16. Autenticación y autorización
 

@@ -12,8 +12,12 @@ describe("confirmBlocker", () => {
     expect(confirmBlocker({ ...ready, method: null })).toMatch(/cómo querés pagar/i)
   })
 
-  it("con tarjeta avisa que todavía no está disponible", () => {
-    expect(confirmBlocker({ ...ready, method: "card" })).toMatch(/tarjeta.*no está disponible/i)
+  it("con tarjeta y los datos guardados se puede pagar", () => {
+    expect(confirmBlocker({ ...ready, method: "card" })).toBeNull()
+  })
+
+  it("con tarjeta también hacen falta los datos y la entrega", () => {
+    expect(confirmBlocker({ ...ready, method: "card", email: "" })).toMatch(/guardá tus datos/i)
   })
 
   it("sin datos o sin forma de entrega guardados pide guardarlos", () => {

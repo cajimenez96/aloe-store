@@ -22,6 +22,9 @@ const SERVER_DIR = path.join(BACKEND_DIR, ".medusa", "server")
 const STORE_DIR = path.join(ROOT, "apps", "storefront")
 const BACKEND_URL = "http://localhost:9300"
 const STOREFRONT_URL = "http://localhost:3100"
+const SIMULATOR_URL = "http://localhost:9400"
+const MP_TOKEN = "TEST-simulador-e2e"
+const MP_SECRET = "secreto-webhook-e2e-0123456789abcdef"
 const ADMIN = { email: "qa@aloe.local", password: "QaScratch-2026-abc" }
 const SELLER = { email: "vend@aloe.local", password: "VendScratch-2026-abc" }
 const SENTINELS = ["Zulema", "Quintana", "1177778888", "30987654", "Calle Secreta", "Ciudad Reservada", "0170099220000067797370", "Titular Reservado", "alias.reservado", "CONTENIDO-COMPROBANTE-SECRETO"]
@@ -100,6 +103,11 @@ async function main() {
     TRUSTED_PROXY_HOPS: "1",
     // El build de producción exige HTTPS para la cookie de sesión; en local se permite por http.
     INSECURE_SESSION_COOKIE: "true",
+    // Pago con tarjeta contra el simulador local de Mercado Pago.
+    MP_ACCESS_TOKEN: MP_TOKEN,
+    MP_API_BASE: SIMULATOR_URL,
+    MP_WEBHOOK_SECRET: MP_SECRET,
+    MP_RECONCILE_AFTER_MINUTES: "0",
     LOG_LEVEL: "http",
   }
 
@@ -116,6 +124,10 @@ async function main() {
   run("npx", ["medusa", "user", "-e", ADMIN.email, "-p", ADMIN.password], { cwd: BACKEND_DIR, env: devEnv, quiet: true })
   run("npx", ["medusa", "exec", "../../scripts/set-user-role.ts", ADMIN.email, "superadmin"], { cwd: BACKEND_DIR, env: devEnv, quiet: true })
   run("npx", ["medusa", "user", "-e", SELLER.email, "-p", SELLER.password], { cwd: BACKEND_DIR, env: devEnv, quiet: true })
+
+  log("Levantando el simulador de Mercado Pago en :9400")
+  start("simulador", "node", ["scripts/mp/simulator.mjs"], { cwd: ROOT, env: { SIM_PORT: "9400", SIM_PUBLIC_URL: SIMULATOR_URL, SIM_TOKEN: MP_TOKEN } })
+  await waitFor(`${SIMULATOR_URL}/pay/pref_0`, "El simulador")
 
   log("Levantando el backend de producción en :9300")
   start("backend", "npx", ["medusa", "start", "--host", "127.0.0.1"], { cwd: SERVER_DIR, env: backendEnv, logFile: backendLog })
@@ -147,6 +159,13 @@ async function main() {
     E2E_SELLER_EMAIL: SELLER.email,
     E2E_SELLER_PASSWORD: SELLER.password,
     E2E_BACKEND_DIR: SERVER_DIR,
+    E2E_SIMULATOR_URL: SIMULATOR_URL,
+    E2E_SIMULATOR_TOKEN: MP_TOKEN,
+    E2E_MP_WEBHOOK_SECRET: MP_SECRET,
+    MP_ACCESS_TOKEN: MP_TOKEN,
+    MP_API_BASE: SIMULATOR_URL,
+    MP_WEBHOOK_SECRET: MP_SECRET,
+    MP_RECONCILE_AFTER_MINUTES: "0",
     E2E_REPORT: path.join(ROOT, "reports", "e2e-playwright.json"),
     DATABASE_URL: databaseUrl,
     NODE_ENV: "production",

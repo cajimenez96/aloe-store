@@ -1,7 +1,7 @@
 {
   "scenario": "e2e-produccion",
-  "generatedAt": "2026-10-24T19:55:52.304Z",
-  "gitCommit": "55bcc13",
+  "generatedAt": "2026-10-24T20:25:09.965Z",
+  "gitCommit": "3b0c3ed",
   "workingTreeClean": false,
   "environment": {
     "backend": "medusa start (build de producción)",
@@ -9,14 +9,14 @@
     "node": "v22.23.4"
   },
   "playwright": {
-    "expected": 12,
+    "expected": 20,
     "unexpected": 0,
-    "skipped": 1,
+    "skipped": 0,
     "flaky": 0
   },
   "logs": {
-    "lines": 390,
-    "jsonLines": 385,
+    "lines": 579,
+    "jsonLines": 574,
     "allApplicationLogsJson": true,
     "runtimeWarnings": 5,
     "unexpectedNonJson": [],
@@ -27,7 +27,12 @@
       "payment_captured",
       "transfer_proof_rejected",
       "role_denied",
-      "pos_sale_registered"
+      "pos_sale_registered",
+      "payment_settled",
+      "mp_reconcile",
+      "webhook_rejected",
+      "PAYMENT_AMOUNT_MISMATCH",
+      "payment_refunded_no_order"
     ]
   },
   "passed": true
