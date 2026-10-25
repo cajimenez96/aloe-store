@@ -49,7 +49,7 @@ Se construyeron el proveedor de Mercado Pago, el webhook firmado, la conciliaci�
 ## Decisiones pendientes del Product Owner
 
 1. **Verificación real de Mercado Pago (ítem 7).** Todo el flujo de tarjeta está construido y probado con un simulador, pero no contra el sandbox real. Para cerrar SP-02 hace falta la aplicación y las cuentas de prueba de Mercado Pago (a cargo del dueño). Opciones: dar el MVP0 por terminado con el simulador y verificar contra el sandbox al desplegar (HU-51), o esperar a hacerlo antes.
-2. **Dependencias con vulnerabilidades altas (ítem 12).** Aceptar el riesgo mientras sean transitivas de Medusa y revisarlas con cada actualización de Medusa, o pedir que se evalúe una actualización mayor.
+2. **Dependencias con vulnerabilidades altas (ítem 12). RESUELTO 2026-10-25: se aceptan** mientras sean transitivas de Medusa (74 altas, 9 moderadas, 0 críticas) y se revisan con cada actualización de Medusa. Opciones evaluadas: aceptar el riesgo mientras sean transitivas de Medusa y revisarlas con cada actualización de Medusa, o pedir que se evalúe una actualización mayor.
 3. **Avisos sin corregir.** Los de menor impacto se proponen para el MVP1; si alguno debe corregirse antes de abrir al público, indicarlo.
 
 ## 6.2 Requisitos de la etapa de despliegue
