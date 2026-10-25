@@ -29,3 +29,14 @@ L2: la ruta nativa de webhooks de Medusa (`/hooks/payment/:provider`) responde s
 - A4: `settleSession` corre bajo bloqueo por sesión y reconsulta el pago; un fallo de reembolso responde 503 para que MP reintente.
 - A5: `pickPayment` prioriza el aprobado que coincide con monto/moneda/referencia; un segundo aprobado se reembolsa (`payment_duplicate_refunded`).
 - Pruebas: 332 unitarios, `check:fast` y E2E (0 fugas) en verde. E2E propios del huérfano y del duplicado: pasan.
+
+## Tarea pendiente: SP-02 contra el sandbox real (decisión del dueño, 2026-10-25)
+
+Se da el MVP0 por avanzado con el simulador; la verificación real queda para cuando el dueño cree la app de pruebas.
+
+Para retomar:
+1. El dueño crea la app de pruebas y las cuentas de vendedor y comprador de prueba en Mercado Pago Developers.
+2. Cargar en `apps/backend/.env`: `MP_ACCESS_TOKEN` (de prueba) y `MP_WEBHOOK_SECRET`; dejar `MP_API_BASE` sin definir.
+3. Contrastar formato real de `x-signature`, de la API de pagos/búsqueda/reembolsos y los `back_urls` (host `localhost`); decidir túnel para el webhook.
+4. Evaluar el plugin oficial (SEC-81) frente al proveedor propio.
+5. Repetir los escenarios de `e2e/tests/11` y `12` contra el sandbox; verificar HU-51 al desplegar.
