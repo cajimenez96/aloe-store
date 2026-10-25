@@ -665,8 +665,8 @@ PROOFS_LOCAL_DIR=../../storage/private/proofs
 PROOFS_URL_SIGNING_SECRET=     # generado en cada máquina
 
 # Mercado Pago (solo credenciales de prueba)
-MERCADOPAGO_ACCESS_TOKEN=
-MERCADOPAGO_WEBHOOK_SECRET=    # en local: secreto de prueba para el simulador
+MP_ACCESS_TOKEN=
+MP_WEBHOOK_SECRET=    # en local: secreto de prueba para el simulador
 MP_NOTIFICATION_URL=           # vacío si no hay URL pública
 MP_BACK_URL_BASE=              # opcional. Ver sección 10.4
 ```

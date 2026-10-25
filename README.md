@@ -85,8 +85,8 @@ AUTH_CORS=http://localhost:9000,http://localhost:3000
 PROOFS_STORAGE_DRIVER=local
 PROOFS_LOCAL_DIR=../../storage/private/proofs
 PROOFS_URL_SIGNING_SECRET=<generado>
-MERCADOPAGO_ACCESS_TOKEN=        # solo credenciales de prueba
-MERCADOPAGO_WEBHOOK_SECRET=      # en local, secreto de prueba del simulador
+MP_ACCESS_TOKEN=                 # solo credenciales de prueba
+MP_WEBHOOK_SECRET=               # clave secreta de Webhooks de la app (o, con el simulador, un secreto de prueba)
 MP_NOTIFICATION_URL=             # vacío si no hay URL pública
 MP_BACK_URL_BASE=
 ```
