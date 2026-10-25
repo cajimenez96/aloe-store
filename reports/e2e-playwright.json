@@ -5,9 +5,7 @@
       "/Users/carlosjimenez/Documents/Repositorios/multi-store/node_modules/.bin/playwright",
       "test",
       "-c",
-      "e2e/playwright.config.ts",
-      "--grep",
-      "descartó|duplicado"
+      "e2e/playwright.config.ts"
     ],
     "configFile": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/playwright.config.ts",
     "rootDir": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests",
@@ -97,11 +95,869 @@
   },
   "suites": [
     {
+      "title": "01-transferencia-aceptada.spec.ts",
+      "file": "01-transferencia-aceptada.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "compra por transferencia: sube el comprobante, el admin lo acepta y el pedido queda pagado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5112,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:36.600Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0c5540c9e1db4fc9af37-baf7160c63ad4cd6017a",
+          "file": "01-transferencia-aceptada.spec.ts",
+          "line": 5,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "02-transferencia-rechazada.spec.ts",
+      "file": "02-transferencia-rechazada.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "rechazo del comprobante: el cliente ve el motivo, sube otro y queda pagado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5357,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:42.121Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "42ade069f989b9bc0334-d570e0f75c2adbc213e4",
+          "file": "02-transferencia-rechazada.spec.ts",
+          "line": 5,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "03-vencimiento.spec.ts",
+      "file": "03-vencimiento.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "vencimiento: el job cancela solo el pedido vencido sin comprobante en revisión y libera el stock",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4836,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:47.490Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c7c7119c0f78bd65a11e-121cf48f92f5c7e7dcb2",
+          "file": "03-vencimiento.spec.ts",
+          "line": 5,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "04-venta-en-el-local.spec.ts",
+      "file": "04-venta-en-el-local.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "punto de venta: el vendedor registra una venta, el stock baja y el admin la ve en el cierre",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2374,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:52.335Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "35f0659d0b70cbe6d78f-a079f42d7777d4325b45",
+          "file": "04-venta-en-el-local.spec.ts",
+          "line": 5,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "05-descuento-con-tarjeta.spec.ts",
+      "file": "05-descuento-con-tarjeta.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "el descuento por transferencia no se puede usar con tarjeta ni se filtra el código",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 795,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:54.716Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "898a459122fa64de1a1d-5e338a68f0badbceab62",
+          "file": "05-descuento-con-tarjeta.spec.ts",
+          "line": 5,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "06-token-invalido.spec.ts",
+      "file": "06-token-invalido.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "un token inválido no revela si el pedido existe",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2484,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:55.516Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d26752de6c98215aecb1-3d28eb2ced7d829bbbef",
+          "file": "06-token-invalido.spec.ts",
+          "line": 5,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "07-sin-datos-personales-en-logs.spec.ts",
+      "file": "07-sin-datos-personales-en-logs.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "actividad con datos personales para la verificación de los logs",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1116,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:58.007Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9836fea401d5370032a5-4dfc5efacf17b86c3766",
+          "file": "07-sin-datos-personales-en-logs.spec.ts",
+          "line": 8,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "08-checklist-seguridad.spec.ts",
+      "file": "08-checklist-seguridad.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "CORS con orígenes exactos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 25,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:59.130Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d7b0e98d2dfebabb209a-82f0fee5e531db173f23",
+          "file": "08-checklist-seguridad.spec.ts",
+          "line": 8,
+          "column": 5
+        },
+        {
+          "title": "el storefront manda los encabezados de seguridad (sin HSTS) en todas las respuestas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 57,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:59.160Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d7b0e98d2dfebabb209a-68f842102d5873d64a57",
+          "file": "08-checklist-seguridad.spec.ts",
+          "line": 22,
+          "column": 5
+        },
+        {
+          "title": "comprobantes: fuera de static, sin sesión no se abren y el enlace alterado o ajeno se rechaza",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1500,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:16:59.221Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d7b0e98d2dfebabb209a-e6c04eadd6dd17fa8225",
+          "file": "08-checklist-seguridad.spec.ts",
+          "line": 38,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "09-pedidos-filtro-de-pago.spec.ts",
+      "file": "09-pedidos-filtro-de-pago.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "pedidos: se filtran por estado de pago y por canal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2158,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:00.726Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c75b9a1455c366e178d9-100f14ebf3fe8f4e7cd3",
+          "file": "09-pedidos-filtro-de-pago.spec.ts",
+          "line": 5,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "10-subidas-en-paralelo.spec.ts",
+      "file": "10-subidas-en-paralelo.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seis subidas simultáneas del mismo pedido dejan un solo comprobante en revisión",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1030,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:02.892Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f4f5cb31c2a45e955727-9f3074e828fb1e9065d2",
+          "file": "10-subidas-en-paralelo.spec.ts",
+          "line": 7,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "11-tarjeta-navegador.spec.ts",
+      "file": "11-tarjeta-navegador.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "compra con tarjeta: paga en Mercado Pago, vuelve, se verifica y queda el pedido pagado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3457,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:03.930Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "57f6cef19963252b3c9a-7b638661ab82134db064",
+          "file": "11-tarjeta-navegador.spec.ts",
+          "line": 31,
+          "column": 5
+        },
+        {
+          "title": "compra con tarjeta rechazada: vuelve al checkout con el aviso y puede pagar por transferencia",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3256,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:07.392Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "57f6cef19963252b3c9a-5274db01cf66ed44ac46",
+          "file": "11-tarjeta-navegador.spec.ts",
+          "line": 51,
+          "column": 5
+        },
+        {
+          "title": "verificar el pago antes de pagar espera, sin crear nada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2936,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:10.654Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "57f6cef19963252b3c9a-d5f6b481375b8c7d13ef",
+          "file": "11-tarjeta-navegador.spec.ts",
+          "line": 67,
+          "column": 5
+        }
+      ]
+    },
+    {
       "title": "12-tarjeta-webhook-y-conciliacion.spec.ts",
       "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [
+        {
+          "title": "webhook: firma inválida y vencida se rechazan; la válida crea el pedido; repetirla no duplica",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 965,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:13.598Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-d26f2c806ac876e8e8e1",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 17,
+          "column": 5
+        },
+        {
+          "title": "monto distinto: el pago no se marca como cobrado y no se crea el pedido",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 737,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:14.567Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-0e6124d04b55e1312015",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 45,
+          "column": 5
+        },
+        {
+          "title": "sin webhook: el job de conciliación confirma el pago aprobado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3290,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:15.309Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-0faa297d8e3e11fef451",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 58,
+          "column": 5
+        },
+        {
+          "title": "la última unidad: el primer pago crea el pedido y el segundo se reembolsa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1124,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:18.603Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-ae429afe92315471cea1",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 67,
+          "column": 5
+        },
+        {
+          "title": "el descuento de transferencia no pasa con tarjeta, ni armando la sesión por la API nativa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [
+                {
+                  "type": "serial",
+                  "location": {
+                    "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                    "line": 0,
+                    "column": 0
+                  }
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 663,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:19.732Z",
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "/Users/carlosjimenez/Documents/Repositorios/multi-store/e2e/tests/12-tarjeta-webhook-y-conciliacion.spec.ts",
+                        "line": 0,
+                        "column": 0
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0577ee5e97527c108e3e-dacc77593293d3122f22",
+          "file": "12-tarjeta-webhook-y-conciliacion.spec.ts",
+          "line": 85,
+          "column": 5
+        },
         {
           "title": "pago de una sesión que Medusa descartó: se reembolsa y no se crea pedido",
           "ok": true,
@@ -127,12 +983,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1497,
+                  "duration": 746,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T23:55:21.409Z",
+                  "startTime": "2026-10-25T14:17:20.400Z",
                   "annotations": [
                     {
                       "type": "serial",
@@ -179,12 +1035,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1241,
+                  "duration": 817,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T23:55:22.929Z",
+                  "startTime": "2026-10-25T14:17:21.151Z",
                   "annotations": [
                     {
                       "type": "serial",
@@ -207,13 +1063,89 @@
           "column": 5
         }
       ]
+    },
+    {
+      "title": "13-canales-por-defecto.spec.ts",
+      "file": "13-canales-por-defecto.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "un producto creado sin canales queda publicado en Web y Local",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 97,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:21.972Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5eecb1202d181ec0f802-550c4f64314206fb23f5",
+          "file": "13-canales-por-defecto.spec.ts",
+          "line": 4,
+          "column": 5
+        },
+        {
+          "title": "un canal elegido por el admin no se pierde al sumar los de por defecto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 81,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T14:17:22.073Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5eecb1202d181ec0f802-a8e5a24f8ad6a47f9cb9",
+          "file": "13-canales-por-defecto.spec.ts",
+          "line": 23,
+          "column": 5
+        }
+      ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-24T23:55:20.585Z",
-    "duration": 3599.0750000000003,
-    "expected": 2,
+    "startTime": "2026-10-25T14:16:35.982Z",
+    "duration": 46203.159999999996,
+    "expected": 24,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

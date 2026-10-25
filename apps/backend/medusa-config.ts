@@ -11,6 +11,10 @@ const redisUrl = process.env.REDIS_URL
 const backendUrl = process.env.MEDUSA_BACKEND_URL ?? "http://localhost:9000"
 
 module.exports = defineConfig({
+  admin: {
+    // El panel limita por defecto cada imagen a 1 MB; las fotos de producto pueden llegar a 5 MB.
+    maxUploadFileSize: 5 * 1024 * 1024,
+  },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     redisUrl,
